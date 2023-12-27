@@ -24,6 +24,7 @@ jobs:
     container:
       image: quay.io/pypa/manylinux2014_x86_64:latest
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest]
         arch: [x86_64]
