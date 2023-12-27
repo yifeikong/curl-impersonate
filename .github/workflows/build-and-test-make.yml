@@ -18,111 +18,16 @@ env:
   BORING_SSL_COMMIT: d24a38200fef19150eef00cad35b138936c08767
 
 jobs:
-  build-and-test:
-    name: Build curl-impersonate and run the tests
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-20.04, macos-12]
-        arch: [x86_64]
-        include:
-          - os: ubuntu-20.04
-            arch: x86_64
-            host: x86_64-linux-gnu
-            capture_interface: eth0
-            make: make
-          - os: ubuntu-20.04
-            arch: aarch64
-            host: aarch64-linux-gnu
-            capture_interface: eth0
-            make: make
-          - os: ubuntu-20.04
-            arch: arm
-            host: arm-linux-gnueabihf
-            capture_interface: eth0
-            make: make
-          - os: macos-12
-            arch: x86_64
-            host: x86_64-macos
-            capture_interface: en0
-            make: gmake
+  build-and-test-linux:
+    name: (Linux x86_64) Build curl-impersonate and run the tests
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      - name: Install Ubuntu dependencies
-        if: matrix.os == 'ubuntu-20.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install build-essential pkg-config cmake ninja-build curl autoconf automake libtool
-          # Chrome version dependencies
-          sudo apt-get install golang-go
-          # Needed to compile 'minicurl'
-          sudo apt-get install libcurl4-openssl-dev
-          # More dependencies for the tests
-          sudo apt-get install tcpdump nghttp2-server libnss3
-
-      - name: Install Ubuntu cross-compile dependencies (${{ matrix.arch }})
-        if: matrix.os == 'ubuntu-20.04' && matrix.arch != 'x86_64'
-        run: |
-          sudo apt-get install gcc-${{ matrix.host }} g++-${{ matrix.host }}
-
-      - name: Install macOS dependencies
-        if: matrix.os == 'macos-12'
-        run: |
-          brew install pkg-config make cmake ninja autoconf automake libtool
-          # Chrome version dependencies
-          # (Go is already installed)
-          # brew install go
-          # Needed to compile 'minicurl'
-          brew install curl
-          # More dependencies for the tests
-          brew install tcpdump nghttp2 nss
-
-      - name: Install common dependencies
-        run: |
-          # Firefox version dependencies
-          pip3 install gyp-next
-
       - name: Check out the repo
         uses: actions/checkout@v2
-
-      - name: Install dependencies for the tests script
-        run: |
-          pip3 install -r tests/requirements.txt
-
-      # When cross compiling we need to build zlib first.
-      - name: Build zlib
-        run: |
-          curl -LO https://zlib.net/zlib-1.3.tar.gz
-          tar xf zlib-1.3.tar.gz
-          cd zlib-1.3
-          CHOST=${{ matrix.host }} ./configure --prefix=${{ runner.temp }}/zlib
-          make
-          make install
-          # Make sure curl will link with libz.so.1 and not libz.so
-          rm -f ${{ runner.temp }}/zlib/lib/libz.so
-
-      - name: Run configure script
-        if: matrix.arch == 'x86_64'
-        run: |
-          mkdir ${{ runner.temp }}/install
-          ./configure --prefix=${{ runner.temp }}/install
-
-      # When cross compiling a more complicated configuration is needed, since
-      # curl's configure script can't figure out where some files and libraries
-      # are located. The locations used here are the ones used by Ubuntu.
-      - name: Run configure script (cross compiling)
-        if: matrix.arch != 'x86_64'
-        run: |
-          mkdir ${{ runner.temp }}/install
-          ./configure --prefix=${{ runner.temp }}/install \
-                      --host=${{ matrix.host }} \
-                      --with-zlib=${{ runner.temp }}/zlib \
-                      --with-ca-path=/etc/ssl/certs \
-                      --with-ca-bundle=/etc/ssl/certs/ca-certificates.crt \
-                      --with-libnssckbi=/usr/lib/${{ matrix.host }}/nss
 
       # Cache the build of BoringSSL, which is the longest part of the build
       # We must cache the .zip as well, otherwise the Makefile will
@@ -150,12 +55,6 @@ jobs:
           touch boringssl/.patched
           find boringssl/build -type f | xargs touch
 
-      - name: Build the Chrome version of curl-impersonate
-        run: |
-          ${{ matrix.make }} chrome-build
-          ${{ matrix.make }} chrome-checkbuild
-          ${{ matrix.make }} chrome-install
-
       # Cache the build of NSS, which is the longest part of the build
       # We must cache the .tar.gz as well, otherwise the Makefile will
       # rebuild NSS.
@@ -180,82 +79,11 @@ jobs:
           touch ${{ env.NSS_VERSION }}.tar.gz
           find ${{ env.NSS_VERSION }}/dist -type f | xargs touch
 
-      - name: Build the Firefox version of curl-impersonate
-        run: |
-          ${{ matrix.make }} firefox-build
-          ${{ matrix.make }} firefox-checkbuild
-          ${{ matrix.make }} firefox-install
-
-      - name: Prepare the tests
-        if: matrix.arch == 'x86_64'
-        run: |
-          # Compile 'minicurl' which is used by the tests
-          gcc -Wall -Werror -o ${{ runner.temp }}/install/bin/minicurl tests/minicurl.c `curl-config --libs`
-
-      # For now we can only run the tests when not cross compiling, since the
-      # tests run the curl-impersonate binary locally.
-      - name: Run the tests
-        if: matrix.arch == 'x86_64'
-        run: |
-          cd tests
-          # sudo is needed for capturing packets
-          python_bin=$(which python3)
-          sudo $python_bin -m pytest . --log-cli-level DEBUG --install-dir ${{ runner.temp }}/install --capture-interface ${{ matrix.capture_interface }}
-
-       # Upload pre-compiled binaries to GitHub releases page.
-      - name: Create tar release files for libcurl-impersonate
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-            cd ${{ runner.temp }}/install/lib
-            tar -c -z -f ${{ runner.temp }}/libcurl-impersonate-${{ github.ref_name }}.${{ matrix.host }}.tar.gz libcurl-impersonate*
-            echo "release_file_lib=${{ runner.temp }}/libcurl-impersonate-${{ github.ref_name }}.${{ matrix.host }}.tar.gz" >> $GITHUB_ENV
-
-      - name: Clean build
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          ${{ matrix.make }} chrome-clean
-          ${{ matrix.make }} firefox-clean
-          rm -Rf ${{ runner.temp }}/install
-          mkdir ${{ runner.temp }}/install
-
-       # Recompile curl-impersonate statically when doing a release.
-      - name: Reconfigure statically
-        if: startsWith(github.ref, 'refs/tags/') && matrix.arch == 'x86_64'
-        run: |
-          ./configure --prefix=${{ runner.temp }}/install --enable-static
-
-      - name: Reconfigure statically (cross compiling)
-        if: startsWith(github.ref, 'refs/tags/') && matrix.arch != 'x86_64'
-        run: |
-          ./configure --prefix=${{ runner.temp }}/install \
-                      --enable-static \
-                      --host=${{ matrix.host }} \
-                      --with-zlib=${{ runner.temp }}/zlib \
-                      --with-ca-path=/etc/ssl/certs \
-                      --with-ca-bundle=/etc/ssl/certs/ca-certificates.crt \
-                      --with-libnssckbi=/usr/lib/${{ matrix.host }}/nss
-
-      - name: Rebuild statically
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          ${{ matrix.make }} chrome-build
-          ${{ matrix.make }} chrome-checkbuild
-          ${{ matrix.make }} chrome-install-strip
-          ${{ matrix.make }} firefox-build
-          ${{ matrix.make }} firefox-checkbuild
-          ${{ matrix.make }} firefox-install-strip
-
-      - name: Create tar release files for curl-impersonate
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          cd ${{ runner.temp }}/install/bin
-          tar -c -z -f ${{ runner.temp }}/curl-impersonate-${{ github.ref_name }}.${{ matrix.host }}.tar.gz curl-impersonate-ff curl-impersonate-chrome curl_*
-          echo "release_file_bin=${{ runner.temp }}/curl-impersonate-${{ github.ref_name }}.${{ matrix.host }}.tar.gz" >> $GITHUB_ENV
-
-      - name: Upload release files
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Run build in manylinux docker
+        uses: addnab/docker-run-action@v3
         with:
-          files: |
-              ${{ env.release_file_lib }}
-              ${{ env.release_file_bin }}
+          image: quay.io/pypa/manylinux2014_x86_64
+          options: -v ${{ github.workspace }}:/work --workdir /work
+          run: |
+            set -e
+            /work/scripts/build_linux.sh
