@@ -14,7 +14,7 @@ permissions:
   contents: write
 
 env:
-  NSS_VERSION: nss-3.77
+  NSS_VERSION: nss-3.92
   BORING_SSL_COMMIT: d24a38200fef19150eef00cad35b138936c08767
 
 jobs:
@@ -25,6 +25,16 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          docker build -t curl-impersonate-builder -f - . << "EOF"
+            FROM quay.io/pypa/manylinux2014_x86_64:latest
+            RUN python3.9 -m pip install ninja cmake && \
+                curl -o /tmp/go.tar.gz -L https://go.dev/dl/go1.19.10.linux-amd64.tar.gz & \
+                tar -C /usr/local -xzf /tmp/go.tar.gz
+            ENV PATH=/usr/local/go/bin:/opt/_internal/cpython-3.9.18/bin:$PATH
+          EOF
 
       - name: Check out the repo
         uses: actions/checkout@v2
@@ -82,8 +92,16 @@ jobs:
       - name: Run build in manylinux docker
         uses: addnab/docker-run-action@v3
         with:
-          image: quay.io/pypa/manylinux2014_x86_64
+          image: curl-impersonate-builder
           options: -v ${{ github.workspace }}:/work --workdir /work
           run: |
             set -e
-            /work/scripts/build_linux.sh
+            mkdir /tmp/install
+            ./configure --prefix=/tmp/install
+
+            make chrome-build
+            make chrome-checkbuild
+            make chrome-install
+            make firefox-build
+            make firefox-checkbuild
+            make firefox-install
