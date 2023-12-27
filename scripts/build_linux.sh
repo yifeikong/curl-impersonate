@@ -1,6 +1,6 @@
 #!/bin/bash
 
-pip install ninja cmake
+python3.9 -m pip install ninja cmake
 
 mkdir /tmp/install
 ./configure --prefix=/tmp/install
