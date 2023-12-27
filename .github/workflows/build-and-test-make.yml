@@ -40,7 +40,7 @@ jobs:
             make: make
           - os: ubuntu-latest
             arch: arm
-            host: arm-linux-gnueabihf
+            host: arm-linux-gnu
             capture_interface: eth0
             make: make
     steps:
@@ -49,7 +49,12 @@ jobs:
           python3.10 -m pip install ninja cmake gyp-next
           curl -o /tmp/go.tar.gz -L https://go.dev/dl/go1.19.10.linux-amd64.tar.gz
           tar -C /usr/local -xzf /tmp/go.tar.gz
-          echo "PATH=/usr/local/go/bin:/opt/_internal/cpython-3.10.13/bin:$PATH" >> $GITHUB_ENV
+          echo "PATH=/usr/local/go/bin:$(python3.10 -c "import sys; import os; print(os.path.dirname(sys.executable))"):$PATH" >> $GITHUB_ENV
+
+      - name: Install cross-compile dependencies (${{ matrix.arch }})
+        if: matrix.arch != 'x86_64'
+        run: |
+          yum install gcc-${{ matrix.host }} g++-${{ matrix.host }}
 
       - name: Check out the repo
         uses: actions/checkout@v2
