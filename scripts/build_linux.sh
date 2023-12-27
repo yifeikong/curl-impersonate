@@ -3,8 +3,8 @@
 python3.9 -m pip install ninja cmake
 export PATH=/opt/_internal/cpython-3.9.18/bin:$PATH
 
-wget -q https://go.dev/dl/go1.19.10.linux-armv6l.tar.gz
-tar -C /usr/local -xzf go1.19.10.linux-armv6l.tar.gz
+curl -o /tmp/go.tar.gz https://go.dev/dl/go1.19.10.linux-armv6l.tar.gz
+tar -C /usr/local -xzf /tmp/go.tar.gz
 export PATH=/usr/local/go/bin:$PATH
 
 mkdir /tmp/install
