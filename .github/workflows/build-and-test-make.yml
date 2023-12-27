@@ -31,7 +31,7 @@ jobs:
           docker build -t curl-impersonate-builder -f - . << "EOF"
             FROM quay.io/pypa/manylinux2014_x86_64:latest
             RUN python3.9 -m pip install ninja cmake && \
-                curl -o /tmp/go.tar.gz -L https://go.dev/dl/go1.19.10.linux-amd64.tar.gz & \
+                curl -o /tmp/go.tar.gz -L https://go.dev/dl/go1.19.10.linux-amd64.tar.gz && \
                 tar -C /usr/local -xzf /tmp/go.tar.gz
             ENV PATH=/usr/local/go/bin:/opt/_internal/cpython-3.9.18/bin:$PATH
           EOF
