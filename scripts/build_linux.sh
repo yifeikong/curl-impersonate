@@ -1,5 +1,8 @@
 #!/bin/bash
 
+mkdir /tmp/install
+./configure --prefix=/tmp/install
+
 make chrome-build
 make chrome-checkbuild
 make chrome-install
