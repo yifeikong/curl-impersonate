@@ -1,6 +1,6 @@
 #!/bin/bash
 
-pip3 install ninja
+pip install ninja
 
 mkdir /tmp/install
 ./configure --prefix=/tmp/install
