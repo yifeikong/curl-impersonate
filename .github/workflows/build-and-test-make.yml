@@ -40,13 +40,13 @@ jobs:
             host: aarch64-linux-gnu
             capture_interface: eth0
             make: make
-            image: quay.io/pypa/manylinux2014_aarch84:latest
+            image: quay.io/pypa/manylinux2014_aarch64:latest
           - os: ubuntu-latest
             arch: arm
             host: arm-linux-gnu
             capture_interface: eth0
             make: make
-            image: ghrc.io/bjia56/armv7l-wheel-builder:main
+            image: ghcr.io/bjia56/armv7l-wheel-builder:main
     steps:
       - name: Install dependencies
         run: |
