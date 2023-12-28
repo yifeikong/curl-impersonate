@@ -169,7 +169,7 @@ jobs:
       - name: Install test dependencies
         run: |
           docker build --platform ${{ matrix.docker_arch }} -t curl-impersonate-tester -f - . <<EOF
-            FROM ubuntu:22.04
+            FROM ubuntu:20.04
             ENV HOME=$HOME
             RUN apt-get update
             RUN apt-get -y install build-essential pkg-config cmake ninja-build curl autoconf automake libtool
