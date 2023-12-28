@@ -225,7 +225,7 @@ index 08e4183..d486c01 100644
  #endif
  
 +#if defined(OPENSSL_AARCH64)
-+https://elixir.bootlin.com/glibc/glibc-2.38/source/sysdeps/unix/sysv/linux/aarch64/sys/user.h#L22
++// https://elixir.bootlin.com/glibc/glibc-2.38/source/sysdeps/unix/sysv/linux/aarch64/sys/user.h#L22
 +struct user_regs_struct
 +{
 +  unsigned long long regs[31];
