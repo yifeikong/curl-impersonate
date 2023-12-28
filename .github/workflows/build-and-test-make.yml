@@ -22,7 +22,7 @@ jobs:
     name: (Linux ${{ matrix.arch }}) Build curl-impersonate and run the tests
     runs-on: ${{ matrix.os }}
     container:
-      image: quay.io/pypa/manylinux2014_x86_64:latest
+      image: ${{ matrix.image }}
     strategy:
       fail-fast: false
       matrix:
@@ -34,16 +34,19 @@ jobs:
             host: x86_64-linux-gnu
             capture_interface: eth0
             make: make
+            image: quay.io/pypa/manylinux2014_x86_64:latest
           - os: ubuntu-latest
             arch: aarch64
             host: aarch64-linux-gnu
             capture_interface: eth0
             make: make
+            image: quay.io/pypa/manylinux2014_aarch84:latest
           - os: ubuntu-latest
             arch: arm
             host: arm-linux-gnu
             capture_interface: eth0
             make: make
+            image: ghrc.io/bjia56/armv7l-wheel-builder:main
     steps:
       - name: Install dependencies
         run: |
