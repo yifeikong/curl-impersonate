@@ -169,7 +169,7 @@ jobs:
       - name: Install test dependencies
         run: |
           docker build --platform ${{ matrix.docker_arch }} -t curl-impersonate-tester -f - . <<EOF
-            FROM ubuntu:20.04
+            FROM ubuntu:22.04
             ENV HOME=$HOME
             ENV DEBIAN_FRONTEND=noninteractive
             ENV TZ=Etc/UTC
