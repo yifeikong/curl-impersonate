@@ -58,6 +58,7 @@ jobs:
           python_bin_dir=$(docker run ${{ matrix.image }} python3.10 -c 'import sys; import os; print(os.path.dirname(os.path.realpath(sys.executable)))')
           echo "runner_uid=$(id -u)" >> $GITHUB_ENV
           echo "runner_gid=$(id -g)" >> $GITHUB_ENV
+          echo "runner_home=$HOME" >> $GITHUB_ENV
           docker build -t curl-impersonate-builder -f - . <<EOF
             FROM ${{ matrix.image }}
             ENV PATH=/usr/local/go/bin:/opt/rh/devtoolset-10/root/usr/bin:$python_bin_dir:\$PATH
@@ -75,7 +76,12 @@ jobs:
         uses: addnab/docker-run-action@v3
         with:
           image: curl-impersonate-builder
-          options: -v ${{ github.workspace }}:${{ github.workspace }} -v ${{ runner.temp }}:${{ runner.temp }} --workdir ${{ github.workspace }} --user ${{ env.runner_uid }}:${{ env.runner_gid }}
+          options: >
+            -v ${{ env.runner_home }}:${{ env.runner_home }}
+            -v ${{ github.workspace }}:${{ github.workspace }}
+            -v ${{ runner.temp }}:${{ runner.temp }}
+            --workdir ${{ github.workspace }}
+            --user ${{ env.runner_uid }}:${{ env.runner_gid }}
           run: |
             set -e
             mkdir ${{ runner.temp }}/install
@@ -111,7 +117,12 @@ jobs:
         uses: addnab/docker-run-action@v3
         with:
           image: curl-impersonate-builder
-          options: -v ${{ github.workspace }}:${{ github.workspace }} -v ${{ runner.temp }}:${{ runner.temp }} --workdir ${{ github.workspace }} --user ${{ env.runner_uid }}:${{ env.runner_gid }}
+          options: >
+            -v ${{ env.runner_home }}:${{ env.runner_home }}
+            -v ${{ github.workspace }}:${{ github.workspace }}
+            -v ${{ runner.temp }}:${{ runner.temp }}
+            --workdir ${{ github.workspace }}
+            --user ${{ env.runner_uid }}:${{ env.runner_gid }}
           run: |
             set -e
             ${{ matrix.make }} chrome-build
@@ -146,7 +157,12 @@ jobs:
         uses: addnab/docker-run-action@v3
         with:
           image: curl-impersonate-builder
-          options: -v ${{ github.workspace }}:${{ github.workspace }} -v ${{ runner.temp }}:${{ runner.temp }} --workdir ${{ github.workspace }} --user ${{ env.runner_uid }}:${{ env.runner_gid }}
+          options: >
+            -v ${{ env.runner_home }}:${{ env.runner_home }}
+            -v ${{ github.workspace }}:${{ github.workspace }}
+            -v ${{ runner.temp }}:${{ runner.temp }}
+            --workdir ${{ github.workspace }}
+            --user ${{ env.runner_uid }}:${{ env.runner_gid }}
           run: |
             set -e
             ${{ matrix.make }} firefox-build
@@ -197,7 +213,12 @@ jobs:
         uses: addnab/docker-run-action@v3
         with:
           image: curl-impersonate-builder
-          options: -v ${{ github.workspace }}:${{ github.workspace }} -v ${{ runner.temp }}:${{ runner.temp }} --workdir ${{ github.workspace }} --user ${{ env.runner_uid }}:${{ env.runner_gid }}
+          options: >
+            -v ${{ env.runner_home }}:${{ env.runner_home }}
+            -v ${{ github.workspace }}:${{ github.workspace }}
+            -v ${{ runner.temp }}:${{ runner.temp }}
+            --workdir ${{ github.workspace }}
+            --user ${{ env.runner_uid }}:${{ env.runner_gid }}
           run: |
             set -e
             ${{ matrix.make }} chrome-clean
@@ -221,7 +242,12 @@ jobs:
         uses: addnab/docker-run-action@v3
         with:
           image: curl-impersonate-builder
-          options: -v ${{ github.workspace }}:${{ github.workspace }} -v ${{ runner.temp }}:${{ runner.temp }} --workdir ${{ github.workspace }} --user ${{ env.runner_uid }}:${{ env.runner_gid }}
+          options: >
+            -v ${{ env.runner_home }}:${{ env.runner_home }}
+            -v ${{ github.workspace }}:${{ github.workspace }}
+            -v ${{ runner.temp }}:${{ runner.temp }}
+            --workdir ${{ github.workspace }}
+            --user ${{ env.runner_uid }}:${{ env.runner_gid }}
           run: |
             set -e
             ${{ matrix.make }} chrome-build
