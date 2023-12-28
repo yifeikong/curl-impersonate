@@ -67,6 +67,10 @@ jobs:
             RUN python3.10 -m pip install ninja cmake gyp-next --extra-index-url https://bjia56.github.io/armv7l-wheels/
             RUN curl -o /tmp/go.tar.gz -L https://go.dev/dl/go1.19.10.linux-${{ matrix.goarch }}.tar.gz && \
                 tar -C /usr/local -xzf /tmp/go.tar.gz
+            RUN rm -f /usr/local/bin/python3 && \
+                rm -f /usr/local/bin/python && \
+                ln -s /usr/local/bin/python3.10 /usr/local/bin/python3 && \
+                ln -s /usr/local/bin/python3.10 /usr/local/bin/python
           EOF
 
       - name: Check out the repo
