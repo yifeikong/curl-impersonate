@@ -49,6 +49,9 @@ jobs:
             make: make
             image: ghcr.io/bjia56/armv7l-wheel-builder:main
     steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
       - name: Install dependencies
         run: |
           docker build -t curl-impersonate-builder -f - . << "EOF"
