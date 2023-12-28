@@ -53,9 +53,8 @@ jobs:
           echo "PATH=/usr/local/go/bin:$(python3.10 -c "import sys; import os; print(os.path.dirname(sys.executable))"):$PATH" >> $GITHUB_ENV
 
       - name: Install cross-compile dependencies (${{ matrix.arch }})
-        if: matrix.arch != 'x86_64'
         run: |
-          yum install gcc-${{ matrix.host }} gcc-c++-${{ matrix.host }}
+          yum install -y gcc-${{ matrix.host }} gcc-c++-${{ matrix.host }}
 
       - name: Check out the repo
         uses: actions/checkout@v2
