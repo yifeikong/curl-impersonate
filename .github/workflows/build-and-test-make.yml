@@ -155,7 +155,7 @@ jobs:
         if: matrix.arch == 'x86_64'
         run: |
           sudo apt-get update
-          sudo apt-get install tcpdump nghttp2-server libnss3
+          sudo apt-get install libcurl4-openssl-dev tcpdump nghttp2-server libnss3
 
       - name: Prepare the tests
         if: matrix.arch == 'x86_64'
