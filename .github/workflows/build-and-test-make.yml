@@ -171,6 +171,8 @@ jobs:
           docker build --platform ${{ matrix.docker_arch }} -t curl-impersonate-tester -f - . <<EOF
             FROM ubuntu:20.04
             ENV HOME=$HOME
+            ENV DEBIAN_FRONTEND=noninteractive
+            ENV TZ=Etc/UTC
             RUN apt-get update
             RUN apt-get -y install build-essential pkg-config cmake ninja-build curl autoconf automake libtool
             # Chrome version dependencies
