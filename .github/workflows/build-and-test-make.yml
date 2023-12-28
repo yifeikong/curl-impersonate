@@ -52,14 +52,19 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
+      - name: Get Python bin dir inside container
+        run: |
+          echo "python_bin_dir=$(docker run quay.io/pypa/manylinux2014_x86_64:latest python3.10 -c 'import sys; import os; print(os.path.dirname(os.path.realpath(sys.executable)))'')" >> $GITHUB_ENV
+
       - name: Install dependencies
         run: |
+
           docker build -t curl-impersonate-builder -f - . << "EOF"
             FROM ${{ matrix.image }}
             RUN python3.9 -m pip install ninja cmake && \
                 curl -o /tmp/go.tar.gz -L https://go.dev/dl/go1.19.10.linux-${{ matrix.goarch }}.tar.gz && \
                 tar -C /usr/local -xzf /tmp/go.tar.gz
-            ENV PATH=/usr/local/go/bin:$(python3.10 -c "import sys; import os; print(os.path.dirname(sys.executable))"):$PATH
+            ENV PATH=/usr/local/go/bin:${{ env.python_bin_dir }}:$PATH
           EOF
 
       - name: Check out the repo
