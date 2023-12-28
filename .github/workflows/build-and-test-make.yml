@@ -43,7 +43,7 @@ jobs:
             image: quay.io/pypa/manylinux2014_aarch64:latest
           - os: ubuntu-latest
             arch: arm
-            goarch: armv7l
+            goarch: armv6l
             host: arm-linux-gnu
             capture_interface: eth0
             make: make
