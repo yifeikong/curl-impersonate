@@ -85,7 +85,10 @@ jobs:
           run: |
             set -e
             mkdir ${{ runner.temp }}/install
-            ./configure --prefix=${{ runner.temp }}/install
+            ./configure --prefix=${{ runner.temp }}/install \
+                        --with-ca-path=/etc/ssl/certs \
+                        --with-ca-bundle=/etc/ssl/certs/ca-certificates.crt \
+                        --with-libnssckbi=/usr/lib/${{ matrix.host }}/nss
 
       # Cache the build of BoringSSL, which is the longest part of the build
       # We must cache the .zip as well, otherwise the Makefile will
