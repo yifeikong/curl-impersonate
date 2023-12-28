@@ -55,7 +55,7 @@ jobs:
       - name: Install cross-compile dependencies (${{ matrix.arch }})
         if: matrix.arch != 'x86_64'
         run: |
-          yum install gcc-${{ matrix.host }} g++-${{ matrix.host }}
+          yum install gcc-${{ matrix.host }} gcc-c++-${{ matrix.host }}
 
       - name: Check out the repo
         uses: actions/checkout@v2
@@ -70,7 +70,7 @@ jobs:
           curl -LO https://zlib.net/zlib-1.3.tar.gz
           tar xf zlib-1.3.tar.gz
           cd zlib-1.3
-          CHOST=${{ matrix.host }} CC=${{ matrix.host }}-gcc ./configure --prefix=${{ runner.temp }}/zlib
+          CHOST=${{ matrix.host }} ./configure --prefix=${{ runner.temp }}/zlib
           make
           make install
           # Make sure curl will link with libz.so.1 and not libz.so
