@@ -78,8 +78,6 @@ jobs:
           image: curl-impersonate-builder
           options: >
             -v ${{ env.runner_home }}:${{ env.runner_home }}
-            -v ${{ github.workspace }}:${{ github.workspace }}
-            -v ${{ runner.temp }}:${{ runner.temp }}
             --workdir ${{ github.workspace }}
             --user ${{ env.runner_uid }}:${{ env.runner_gid }}
           run: |
@@ -122,8 +120,6 @@ jobs:
           image: curl-impersonate-builder
           options: >
             -v ${{ env.runner_home }}:${{ env.runner_home }}
-            -v ${{ github.workspace }}:${{ github.workspace }}
-            -v ${{ runner.temp }}:${{ runner.temp }}
             --workdir ${{ github.workspace }}
             --user ${{ env.runner_uid }}:${{ env.runner_gid }}
           run: |
@@ -162,8 +158,6 @@ jobs:
           image: curl-impersonate-builder
           options: >
             -v ${{ env.runner_home }}:${{ env.runner_home }}
-            -v ${{ github.workspace }}:${{ github.workspace }}
-            -v ${{ runner.temp }}:${{ runner.temp }}
             --workdir ${{ github.workspace }}
             --user ${{ env.runner_uid }}:${{ env.runner_gid }}
           run: |
@@ -224,8 +218,6 @@ jobs:
           image: curl-impersonate-builder
           options: >
             -v ${{ env.runner_home }}:${{ env.runner_home }}
-            -v ${{ github.workspace }}:${{ github.workspace }}
-            -v ${{ runner.temp }}:${{ runner.temp }}
             --workdir ${{ github.workspace }}
             --user ${{ env.runner_uid }}:${{ env.runner_gid }}
           run: |
@@ -253,8 +245,6 @@ jobs:
           image: curl-impersonate-builder
           options: >
             -v ${{ env.runner_home }}:${{ env.runner_home }}
-            -v ${{ github.workspace }}:${{ github.workspace }}
-            -v ${{ runner.temp }}:${{ runner.temp }}
             --workdir ${{ github.workspace }}
             --user ${{ env.runner_uid }}:${{ env.runner_gid }}
           run: |
