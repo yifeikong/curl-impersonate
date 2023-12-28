@@ -178,7 +178,7 @@ jobs:
             # Needed to compile 'minicurl'
             RUN apt-get -y install libcurl4-openssl-dev
             # More dependencies for the tests
-            RUN apt-get -y install tcpdump nghttp2-server libnss3 python3 python3-pip
+            RUN apt-get -y install tcpdump nghttp2-server libnss3 python3 python3-pip git
           EOF
 
       - name: Prepare the tests
