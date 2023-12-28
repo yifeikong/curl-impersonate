@@ -202,15 +202,13 @@ jobs:
           options: >
             -v ${{ env.runner_home }}:${{ env.runner_home }}
             --workdir ${{ github.workspace }}
-            --user ${{ env.runner_uid }}:${{ env.runner_gid }}
             --network host
           run: |
             pip3 install -r tests/requirements.txt
 
             cd tests
-            # sudo is needed for capturing packets
             python_bin=$(which python3)
-            sudo $python_bin -m pytest . --log-cli-level DEBUG --install-dir ${{ runner.temp }}/install --capture-interface ${{ matrix.capture_interface }}
+            $python_bin -m pytest . --log-cli-level DEBUG --install-dir ${{ runner.temp }}/install --capture-interface ${{ matrix.capture_interface }}
 
        # Upload pre-compiled binaries to GitHub releases page.
       - name: Create tar release files for libcurl-impersonate
