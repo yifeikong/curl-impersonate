@@ -54,7 +54,7 @@ jobs:
 
       - name: Get Python bin dir inside container
         run: |
-          echo "python_bin_dir=$(docker run quay.io/pypa/manylinux2014_x86_64:latest python3.10 -c 'import sys; import os; print(os.path.dirname(os.path.realpath(sys.executable)))'')" >> $GITHUB_ENV
+          echo "python_bin_dir=$(docker run quay.io/pypa/manylinux2014_x86_64:latest python3.10 -c 'import sys; import os; print(os.path.dirname(os.path.realpath(sys.executable)))')" >> $GITHUB_ENV
 
       - name: Install dependencies
         run: |
