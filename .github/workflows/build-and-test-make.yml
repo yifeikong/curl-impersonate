@@ -207,6 +207,7 @@ jobs:
             -v ${{ env.runner_home }}:${{ env.runner_home }}
             --workdir ${{ github.workspace }}
             --network host
+            --privileged
           run: |
             pip3 install -r tests/requirements.txt
 
