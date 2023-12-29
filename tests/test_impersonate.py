@@ -3,7 +3,6 @@ import sys
 import random
 import logging
 import pathlib
-import platform
 import subprocess
 import tempfile
 import itertools
@@ -238,7 +237,7 @@ def test_tls_client_hello(
         # Injecting libcurl-impersonate with LD_PRELOAD is supported on
         # Linux only. On Mac there is DYLD_INSERT_LIBRARIES but it
         # requires more work to be functional.
-        if not sys.platform.startswith("linux") or platform.machine() != "x86_64":
+        if not sys.platform.startswith("linux"):
             pytest.skip()
 
         _set_ld_preload(
@@ -312,7 +311,7 @@ async def test_http2_headers(
         # Injecting libcurl-impersonate with LD_PRELOAD is supported on
         # Linux only. On Mac there is DYLD_INSERT_LIBRARIES but it
         # requires more work to be functional.
-        if not sys.platform.startswith("linux") or platform.machine() != "x86_64":
+        if not sys.platform.startswith("linux"):
             pytest.skip()
 
         _set_ld_preload(
@@ -366,7 +365,7 @@ def test_content_encoding(
         # Injecting libcurl-impersonate with LD_PRELOAD is supported on
         # Linux only. On Mac there is DYLD_INSERT_LIBRARIES but it
         # requires more work to be functional.
-        if not sys.platform.startswith("linux") or platform.machine() != "x86_64":
+        if not sys.platform.startswith("linux"):
             pytest.skip()
 
         _set_ld_preload(
@@ -417,7 +416,7 @@ async def test_no_builtin_headers(
         pytestconfig.getoption("install_dir"), "bin", curl_binary
     )
 
-    if not sys.platform.startswith("linux") or platform.machine() != "x86_64":
+    if not sys.platform.startswith("linux"):
         pytest.skip()
 
     _set_ld_preload(
@@ -491,7 +490,7 @@ async def test_user_agent(pytestconfig, nghttpd, curl_binary, env_vars, ld_prelo
         pytestconfig.getoption("install_dir"), "bin", curl_binary
     )
 
-    if not sys.platform.startswith("linux") or platform.machine() != "x86_64":
+    if not sys.platform.startswith("linux"):
         pytest.skip()
 
     _set_ld_preload(
@@ -563,7 +562,7 @@ async def test_user_agent_curlopt_useragent(
         pytestconfig.getoption("install_dir"), "bin", curl_binary
     )
 
-    if not sys.platform.startswith("linux") or platform.machine() != "x86_64":
+    if not sys.platform.startswith("linux"):
         pytest.skip()
 
     _set_ld_preload(
