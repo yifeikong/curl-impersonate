@@ -40,7 +40,6 @@ export OPENSSL_LIBS='-lssl -lcrypto'
 export HTTP2=1
 export WEBSOCKETS=1
 export ECH=1
-export LIBS='-l'
 
 CURL_VERSION=curl-8_1_1
 
