@@ -46,12 +46,11 @@ export HTTP2=1
 export WEBSOCKETS=1
 export ECH=1
 
-CURL_VERSION=curl-8.1.1
+CURL_VERSION=curl-8_1_1
 
-curl -L "https://curl.se/download/${CURL_VERSION}.tar.xz" \
-	-o "${CURL_VERSION}.tar.xz"
-tar -xf ${CURL_VERSION}.tar.xz
-mv ${CURL_VERSION} curl
+curl -L https://github.com/curl/curl/archive/${CURL_VERSION}.zip -o curl.zip
+unzip -q -o curl.zip
+mv curl-${CURL_VERSION} curl
 
 cd curl
 
