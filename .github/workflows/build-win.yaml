@@ -55,12 +55,12 @@ jobs:
 
       - name: Copy and patch
         shell: msys2 {0}
-        run: ./build.sh
+        run: ./win/build.sh
 
       - uses: ilammy/msvc-dev-cmd@v1
 
       - name: Generate lib files
-        run: ./dll2lib.bat 64 dist\libcurl.dll
+        run: ./win/dll2lib.bat 64 dist\libcurl.dll
 
       - name: Build tarball
         shell: msys2 {0}
