@@ -44,6 +44,12 @@ jobs:
           install: >-
             git
             patch
+            unzip
+            mingw-w64-x86_64-brotli
+            mingw-w64-x86_64-libidn2
+            mingw-w64-x86_64-zstd
+            mingw-w64-x86_64-nghttp2
+            mingw-w64-x86_64-zlib
             mingw-w64-x86_64-make
             mingw-w64-x86_64-cmake
             mingw-w64-x86_64-nasm
@@ -60,11 +66,11 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
 
       - name: Generate lib files
-        run: ./win/dll2lib.bat 64 dist\libcurl.dll
+        run: ./win/dll2lib.bat 64 build\dist\libcurl.dll
 
       - name: Build tarball
         shell: msys2 {0}
-        run: tar cvzf curl-impersonate-chrome.tar.gz -C dist .
+        run: tar cvzf curl-impersonate-chrome.tar.gz -C ./build/dist .
 
       - name: Upload release files
         uses: softprops/action-gh-release@v1
