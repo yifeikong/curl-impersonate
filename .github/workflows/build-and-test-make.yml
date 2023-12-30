@@ -155,12 +155,6 @@ jobs:
           touch ${{ env.NSS_VERSION }}.tar.gz
           find ${{ env.NSS_VERSION }}/dist -type f | xargs touch
 
-      - name: Upload NSS for testing
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ runner.os }}-${{ matrix.arch }}-nss-build-${{ env.NSS_VERSION }}
-          path: ${{ env.NSS_VERSION }}/dist
-
       - name: Build the Firefox version of curl-impersonate
         uses: addnab/docker-run-action@v3
         with:
