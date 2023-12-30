@@ -67,8 +67,8 @@ sed -i 's/-DUSE_NGHTTP2/-DUSE_NGHTTP2 -DNGHTTP2_STATICLIB/g' src/Makefile.mk
 sed -i 's/-lidn2/-lidn2 -lunistring -liconv/g' lib/Makefile.mk
 sed -i 's/-lidn2/-lidn2 -lunistring -liconv/g' src/Makefile.mk
 
-# mingw32-make mingw32-clean CFLAGS=-Wno-unused-variable
-mingw32-make mingw32 -j CFLAGS=-Wno-unused-variable
+mingw32-make -f Makefile.dist mingw32-clean CFLAGS=-Wno-unused-variable
+mingw32-make -f Makefile.dist mingw32 -j CFLAGS=-Wno-unused-variable
 
 mkdir -p ../dist
 mv lib/libcurl* ../dist/
