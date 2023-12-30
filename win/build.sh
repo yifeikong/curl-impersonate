@@ -26,7 +26,6 @@ mv lib/ssl/libssl.a lib/libssl.a
 
 cd ..
 
-export ZLIB=1
 export ZLIB_PATH=zlib_stub
 export ZSTD_PATH=zstd_stub
 export BROTLI_PATH=brotli_stub
@@ -38,7 +37,6 @@ export OPENSSL_PATH=$PWD/boringssl
 export OPENSSL_LIBPATH=$PWD/boringssl/lib
 export OPENSSL_LIBS='-lssl -lcrypto'
 
-export IPV6=1
 export HTTP2=1
 export WEBSOCKETS=1
 export ECH=1
@@ -68,7 +66,7 @@ sed -i 's/-lidn2/-lidn2 -lunistring -liconv/g' lib/Makefile.mk
 sed -i 's/-lidn2/-lidn2 -lunistring -liconv/g' src/Makefile.mk
 
 # mingw32-make -f Makefile.dist mingw32-clean CFLAGS=-Wno-unused-variable
-mingw32-make -f Makefile.dist mingw32 -j CFLAGS=-Wno-unused-variable CFG=-zlib,-nghttp2,-idn2,-brotli,-zstd,-ssl
+mingw32-make -f Makefile.dist mingw32 -j CFLAGS=-Wno-unused-variable CFG=-zlib-nghttp2-idn2-brotli-zstd-ssl-ipv6
 
 mkdir -p ../dist
 mv lib/libcurl* ../dist/
