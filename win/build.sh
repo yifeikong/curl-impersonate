@@ -2,38 +2,23 @@
 
 set -ex
 
+mkdir build/
+cd build/
+
+# Download and patch boringssl
+
+BORING_SSL_COMMIT=d24a38200fef19150eef00cad35b138936c08767
+curl -L https://github.com/google/boringssl/archive/$(BORING_SSL_COMMIT).zip -o boringssl.zip
+unzip -q -o boringssl.zip
+mv boringssl-$(BORING_SSL_COMMIT) boringssl
+
 cd boringssl
 
-rm -rf lib
-git checkout -- .
-patchfile=../curl-impersonate/chrome/patches/boringssl-old-ciphers.patch
+patchfile=../../chrome/patches/boringssl-old-ciphers.patch
 patch -p1 < $patchfile
 sed -i 's/-ggdb//g' CMakeLists.txt
 sed -i 's/-Werror//g' CMakeLists.txt
 
-cd ..
-
-cd curl
-
-git checkout -- .
-git clean -f
-patchfile=../curl-impersonate/chrome/patches/curl-impersonate.patch
-patch -p1 < $patchfile
-
-sed -i 's/-shared/-s -static -shared/g' lib/Makefile.mk
-sed -i 's/-static/-s -static/g' src/Makefile.mk
-
-sed -i 's/-DUSE_NGHTTP2/-DUSE_NGHTTP2 -DNGHTTP2_STATICLIB/g' lib/Makefile.mk
-sed -i 's/-DUSE_NGHTTP2/-DUSE_NGHTTP2 -DNGHTTP2_STATICLIB/g' src/Makefile.mk
-
-sed -i 's/-lidn2/-lidn2 -lunistring -liconv/g' lib/Makefile.mk
-sed -i 's/-lidn2/-lidn2 -lunistring -liconv/g' src/Makefile.mk
-
-cd ..
-
-cd boringssl
-
-rm -rf lib
 cmake -G "Ninja" -S . -B lib -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=gcc.exe
 ninja -C lib crypto ssl
 mv lib/crypto/libcrypto.a lib/libcrypto.a
@@ -59,10 +44,31 @@ export OPENSSL_LIBPATH=$PWD/boringssl/lib
 export OPENSSL_LIBS='-lssl -lcrypto'
 export HTTP2=1
 export WEBSOCKETS=1
+export ECH=1
+
+CURL_VERSION=curl-8.1.1
+
+curl -L "https://curl.se/download/$(CURL_VERSION).tar.xz" \
+	-o "$(CURL_VERSION).tar.xz"
+tar -xf $(CURL_VERSION).tar.xz
+mv $(CURL_VERSION) curl
 
 cd curl
-mingw32-make -f Makefile.dist mingw32-clean CFLAGS=-Wno-unused-variable
-mingw32-make -f Makefile.dist mingw32 -j CFLAGS=-Wno-unused-variable
+
+patchfile=../../chrome/patches/curl-impersonate.patch
+patch -p1 < $patchfile
+
+sed -i 's/-shared/-s -static -shared/g' lib/Makefile.mk
+sed -i 's/-static/-s -static/g' src/Makefile.mk
+
+sed -i 's/-DUSE_NGHTTP2/-DUSE_NGHTTP2 -DNGHTTP2_STATICLIB/g' lib/Makefile.mk
+sed -i 's/-DUSE_NGHTTP2/-DUSE_NGHTTP2 -DNGHTTP2_STATICLIB/g' src/Makefile.mk
+
+sed -i 's/-lidn2/-lidn2 -lunistring -liconv/g' lib/Makefile.mk
+sed -i 's/-lidn2/-lidn2 -lunistring -liconv/g' src/Makefile.mk
+
+# mingw32-make mingw32-clean CFLAGS=-Wno-unused-variable
+mingw32-make mingw32 -j CFLAGS=-Wno-unused-variable
 
 mkdir -p ../dist
 mv lib/libcurl* ../dist/
