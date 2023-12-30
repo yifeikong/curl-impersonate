@@ -41,6 +41,8 @@ export HTTP2=1
 export WEBSOCKETS=1
 export ECH=1
 
+export D_FORTIFY_SOURCE=0
+
 CURL_VERSION=curl-8_1_1
 
 curl -L https://github.com/curl/curl/archive/${CURL_VERSION}.zip -o curl.zip
