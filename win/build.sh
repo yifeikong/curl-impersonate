@@ -19,7 +19,7 @@ patch -p1 < $patchfile
 sed -i 's/-ggdb//g' CMakeLists.txt
 sed -i 's/-Werror//g' CMakeLists.txt
 
-cmake -G "Ninja" -S . -B lib -DCMAKE_BUILD_TYPE=Release #-DCMAKE_C_COMPILER=gcc.exe
+cmake -G "Ninja" -S . -B lib -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=gcc.exe
 ninja -C lib crypto ssl
 mv lib/crypto/libcrypto.a lib/libcrypto.a
 mv lib/ssl/libssl.a lib/libssl.a
@@ -64,8 +64,8 @@ sed -i 's/-DUSE_NGHTTP2/-DUSE_NGHTTP2 -DNGHTTP2_STATICLIB/g' src/Makefile.mk
 sed -i 's/-lidn2/-lidn2 -lunistring -liconv/g' lib/Makefile.mk
 sed -i 's/-lidn2/-lidn2 -lunistring -liconv/g' src/Makefile.mk
 
-# mingw32-make -f Makefile.dist mingw32-clean CFLAGS=-Wno-unused-variable
-mingw32-make -f Makefile.dist mingw32 -j CFLAGS=-Wno-unused-variable CFG=-zlib-nghttp2-idn2-brotli-zstd-ssl-ipv6
+mingw32-make -f Makefile.dist mingw32-clean CFLAGS=-Wno-unused-variable
+mingw32-make -f Makefile.dist mingw32 -j CFLAGS=-Wno-unused-variable CFG=-ssl-zlib-nghttp2-idn2-brotli-zstd-ipv6
 
 mkdir -p ../dist
 mv lib/libcurl* ../dist/
