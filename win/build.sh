@@ -8,9 +8,9 @@ cd build/
 # Download and patch boringssl
 
 BORING_SSL_COMMIT=d24a38200fef19150eef00cad35b138936c08767
-curl -L https://github.com/google/boringssl/archive/$(BORING_SSL_COMMIT).zip -o boringssl.zip
+curl -L https://github.com/google/boringssl/archive/${BORING_SSL_COMMIT}.zip -o boringssl.zip
 unzip -q -o boringssl.zip
-mv boringssl-$(BORING_SSL_COMMIT) boringssl
+mv boringssl-${BORING_SSL_COMMIT} boringssl
 
 cd boringssl
 
@@ -48,10 +48,10 @@ export ECH=1
 
 CURL_VERSION=curl-8.1.1
 
-curl -L "https://curl.se/download/$(CURL_VERSION).tar.xz" \
-	-o "$(CURL_VERSION).tar.xz"
-tar -xf $(CURL_VERSION).tar.xz
-mv $(CURL_VERSION) curl
+curl -L "https://curl.se/download/${CURL_VERSION}.tar.xz" \
+	-o "${CURL_VERSION}.tar.xz"
+tar -xf ${CURL_VERSION}.tar.xz
+mv ${CURL_VERSION} curl
 
 cd curl
 
