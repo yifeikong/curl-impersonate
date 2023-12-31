@@ -56,13 +56,13 @@ jobs:
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-go
 
-      - name: Setup tmate session for debugging
-        uses: mxschmitt/action-tmate@v3
-
       - name: Copy and patch
         shell: msys2 {0}
         run: ./win/build.sh
 
+      # - name: Setup tmate session for debugging
+      #   uses: mxschmitt/action-tmate@v3
+      #
       - uses: ilammy/msvc-dev-cmd@v1
 
       - name: Generate lib files
