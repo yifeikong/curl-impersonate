@@ -19,7 +19,7 @@ patch -p1 < $patchfile
 sed -i 's/-ggdb//g' CMakeLists.txt
 sed -i 's/-Werror//g' CMakeLists.txt
 
-cmake -G "Ninja" -S . -B lib -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=gcc.exe
+cmake -G "Ninja" -S . -B lib -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=gcc.exe -DCMAKE_POSITION_INDEPENDENT_CODE=on
 ninja -C lib crypto ssl
 mv lib/crypto/libcrypto.a lib/libcrypto.a
 mv lib/ssl/libssl.a lib/libssl.a
