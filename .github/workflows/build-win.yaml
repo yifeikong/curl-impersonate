@@ -70,10 +70,11 @@ jobs:
 
       - name: Build tarball
         shell: msys2 {0}
-        run: tar cvzf curl-impersonate-chrome.tar.gz -C ./build/dist .
+        run: tar cvzf libcurl-impersonate-${{ github.ref_name }}.x86_64-win32.tar.gz -C ./build/dist .
 
       - name: Upload release files
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
+          prerelease: true
           files: curl-impersonate-chrome.tar.gz
