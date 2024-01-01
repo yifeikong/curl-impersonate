@@ -215,7 +215,7 @@ index 08e4183..d486c01 100644
  #include "fork_detect.h"
  #include "getrandom_fillin.h"
  
-+#if !defined(NT_ARM_SYSTEM_CAL)
++#if !defined(NT_ARM_SYSTEM_CALL)
 +// https://elixir.bootlin.com/linux/v6.6.8/source/include/uapi/linux/elf.h#L433
 +#define NT_ARM_SYSTEM_CALL	0x404	/* ARM system call number */
 +#endif
