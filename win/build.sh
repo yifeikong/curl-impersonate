@@ -38,7 +38,7 @@ export OPENSSL_LIBPATH=$PWD/boringssl/lib
 export OPENSSL_LIBS='-lssl -lcrypto'
 
 
-CURL_VERSION=curl-8_1_1
+CURL_VERSION=curl-8_5_0
 
 curl -L https://github.com/curl/curl/archive/${CURL_VERSION}.zip -o curl.zip
 unzip -q -o curl.zip
