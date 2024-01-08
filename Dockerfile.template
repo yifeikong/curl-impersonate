@@ -28,7 +28,7 @@ RUN apk add git bash build-base make cmake ninja curl zlib-dev patch linux-heade
 # The following are needed because we are going to change some autoconf scripts,
 # both for libnghttp2 and curl.
 {{#debian}}
-RUN apt-get install -y autoconf automake autotools-dev pkg-config libtool
+RUN apt-get install -y autoconf automake autotools-dev pkg-config libtool git
 {{/debian}}
 {{#alpine}}
 RUN apk add autoconf automake pkgconfig libtool
@@ -160,6 +160,7 @@ RUN cd ${CURL_VERSION} && \
                 CFLAGS="-I/build/${NSS_VERSION}/dist/public/nss -I/build/${NSS_VERSION}/dist/Release/include/nspr" \
 {{/firefox}}
 {{#chrome}}
+                --enable-ech \
                 --with-openssl=/build/boringssl/build \
                 LIBS="-pthread" \
                 CFLAGS="-I/build/boringssl/build" \
@@ -201,6 +202,7 @@ RUN cd ${CURL_VERSION} && \
                 CFLAGS="-I/build/${NSS_VERSION}/dist/public/nss -I/build/${NSS_VERSION}/dist/Release/include/nspr" \
 {{/firefox}}
 {{#chrome}}
+                --enable-ech \
                 --with-openssl=/build/boringssl/build \
                 LIBS="-pthread" \
                 CFLAGS="-I/build/boringssl/build" \
