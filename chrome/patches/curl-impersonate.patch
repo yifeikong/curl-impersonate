@@ -155,7 +155,7 @@ index 000000000..34b44cd2a
 +git df curl-8_5_0 > chrome.patch
 +mv chrome.patch ../curl-impersonate/chrome/patches/curl-impersonate.patch
 diff --git a/include/curl/curl.h b/include/curl/curl.h
-index cc24c0506..2199a34fc 100644
+index cc24c0506..29339db77 100644
 --- a/include/curl/curl.h
 +++ b/include/curl/curl.h
 @@ -631,6 +631,7 @@ typedef enum {
@@ -166,7 +166,7 @@ index cc24c0506..2199a34fc 100644
    CURL_LAST /* never use! */
  } CURLcode;
  
-@@ -2201,6 +2202,59 @@ typedef enum {
+@@ -2201,6 +2202,65 @@ typedef enum {
    /* set a specific client IP for HAProxy PROXY protocol header? */
    CURLOPT(CURLOPT_HAPROXY_CLIENT_IP, CURLOPTTYPE_STRINGPOINT, 323),
  
@@ -222,6 +222,12 @@ index cc24c0506..2199a34fc 100644
 +
 +  /* set ECH configuration, XXX, the official one is 324  */
 +  CURLOPT(CURLOPT_ECH, CURLOPTTYPE_STRINGPOINT, 333),
++
++  /*
++   * curl-impersonate:
++   * Set the initial streams settings for http2.
++   */
++  CURLOPT(CURLOPT_HTTP2_STREAMS, CURLOPTTYPE_STRINGPOINT, 334),
 +
    CURLOPT_LASTENTRY /* the last unused */
  } CURLoption;
@@ -415,7 +421,7 @@ index 3b536000a..d7135698f 100644
  /**
   * Return the n-th header entry or NULL if it does not exist.
 diff --git a/lib/easy.c b/lib/easy.c
-index 322d1a41b..fcf637e55 100644
+index 322d1a41b..95a6dff18 100644
 --- a/lib/easy.c
 +++ b/lib/easy.c
 @@ -74,6 +74,8 @@
@@ -427,28 +433,22 @@ index 322d1a41b..fcf637e55 100644
  
  #include "easy_lock.h"
  
-@@ -341,6 +343,146 @@ CURLsslset curl_global_sslset(curl_sslbackend id, const char *name,
+@@ -341,6 +343,194 @@ CURLsslset curl_global_sslset(curl_sslbackend id, const char *name,
    return rc;
  }
  
++
 +/*
 + * curl-impersonate:
-+ * Call curl_easy_setopt() with all the needed options as defined in the
-+ * 'impersonations' array.
++ * Actually call curl_easy_setopt() with all the needed options
 + * */
-+CURLcode curl_easy_impersonate(struct Curl_easy *data, const char *target,
-+                               int default_headers)
++CURLcode _do_impersonate(struct Curl_easy *data,
++                        const struct impersonate_opts *opts,
++                        int default_headers)
 +{
 +  int i;
 +  int ret;
-+  const struct impersonate_opts *opts = NULL;
 +  struct curl_slist *headers = NULL;
-+
-+  for(opts = impersonations; opts->target != NULL; opts++) {
-+    if (strcasecompare(target, opts->target)) {
-+      break;
-+    }
-+  }
 +
 +  if(opts->target == NULL) {
 +    DEBUGF(fprintf(stderr, "Error: unknown impersonation target '%s'\n",
@@ -557,6 +557,12 @@ index 322d1a41b..fcf637e55 100644
 +      return ret;
 +  }
 +
++  if(opts->http2_streams) {
++    ret = curl_easy_setopt(data, CURLOPT_HTTP2_STREAMS, opts->http2_streams);
++    if(ret)
++      return ret;
++  }
++
 +  if(opts->ech) {
 +    ret = curl_easy_setopt(data, CURLOPT_ECH, opts->ech);
 +    if(ret)
@@ -571,10 +577,58 @@ index 322d1a41b..fcf637e55 100644
 +  return CURLE_OK;
 +}
 +
++
++/*
++ * curl-impersonate:
++ * Call curl_easy_setopt() with all the needed options as defined by the target
++ * */
++CURLcode curl_easy_impersonate_customized(struct Curl_easy *data,
++                                          const struct impersonate_opts *opts,
++                                          int default_headers)
++{
++  int ret;
++
++  ret = _do_impersonate(data, opts, default_headers);
++  if(ret)
++    return ret;
++
++  return CURLE_OK;
++}
++
++/*
++ * curl-impersonate:
++ * Call curl_easy_setopt() with all the needed options as defined in the
++ * 'impersonations' array.
++ * */
++CURLcode curl_easy_impersonate(struct Curl_easy *data, const char *target,
++                               int default_headers)
++{
++  int ret;
++  const struct impersonate_opts *opts = NULL;
++
++  for(opts = impersonations; opts->target != NULL; opts++) {
++    if (strcasecompare(target, opts->target)) {
++      break;
++    }
++  }
++
++  if(opts->target == NULL) {
++    DEBUGF(fprintf(stderr, "Error: unknown impersonation target '%s'\n",
++                   target));
++    return CURLE_BAD_FUNCTION_ARGUMENT;
++  }
++
++  ret = _do_impersonate(data, opts, default_headers);
++  if(ret)
++    return ret;
++
++  return CURLE_OK;
++}
++
  /*
   * curl_easy_init() is the external interface to alloc, setup and init an
   * easy handle that is returned. If anything goes wrong, NULL is returned.
-@@ -349,6 +491,8 @@ struct Curl_easy *curl_easy_init(void)
+@@ -349,6 +539,8 @@ struct Curl_easy *curl_easy_init(void)
  {
    CURLcode result;
    struct Curl_easy *data;
@@ -583,7 +637,7 @@ index 322d1a41b..fcf637e55 100644
  
    /* Make sure we inited the global SSL stuff */
    global_init_lock();
-@@ -371,6 +515,29 @@ struct Curl_easy *curl_easy_init(void)
+@@ -371,6 +563,29 @@ struct Curl_easy *curl_easy_init(void)
      return NULL;
    }
  
@@ -613,7 +667,7 @@ index 322d1a41b..fcf637e55 100644
    return data;
  }
  
-@@ -945,6 +1112,13 @@ struct Curl_easy *curl_easy_duphandle(struct Curl_easy *data)
+@@ -945,6 +1160,13 @@ struct Curl_easy *curl_easy_duphandle(struct Curl_easy *data)
      outcurl->state.referer_alloc = TRUE;
    }
  
@@ -627,7 +681,7 @@ index 322d1a41b..fcf637e55 100644
    /* Reinitialize an SSL engine for the new handle
     * note: the engine name has already been copied by dupset */
    if(outcurl->set.str[STRING_SSL_ENGINE]) {
-@@ -1004,6 +1178,9 @@ fail:
+@@ -1004,6 +1226,9 @@ fail:
   */
  void curl_easy_reset(struct Curl_easy *data)
  {
@@ -637,7 +691,7 @@ index 322d1a41b..fcf637e55 100644
    Curl_free_request_state(data);
  
    /* zero out UserDefined data: */
-@@ -1028,6 +1205,23 @@ void curl_easy_reset(struct Curl_easy *data)
+@@ -1028,6 +1253,23 @@ void curl_easy_reset(struct Curl_easy *data)
  #if !defined(CURL_DISABLE_HTTP) && !defined(CURL_DISABLE_DIGEST_AUTH)
    Curl_http_auth_cleanup_digest(data);
  #endif
@@ -662,7 +716,7 @@ index 322d1a41b..fcf637e55 100644
  
  /*
 diff --git a/lib/easyoptions.c b/lib/easyoptions.c
-index e69c658b0..585a6638b 100644
+index e69c658b0..aa848d66b 100644
 --- a/lib/easyoptions.c
 +++ b/lib/easyoptions.c
 @@ -86,6 +86,7 @@ struct curl_easyoption Curl_easyopts[] = {
@@ -673,7 +727,7 @@ index e69c658b0..585a6638b 100644
    {"EGDSOCKET", CURLOPT_EGDSOCKET, CURLOT_STRING, 0},
    {"ENCODING", CURLOPT_ACCEPT_ENCODING, CURLOT_STRING, CURLOT_FLAG_ALIAS},
    {"ERRORBUFFER", CURLOPT_ERRORBUFFER, CURLOT_OBJECT, 0},
-@@ -133,8 +134,13 @@ struct curl_easyoption Curl_easyopts[] = {
+@@ -133,8 +134,14 @@ struct curl_easyoption Curl_easyopts[] = {
    {"HSTS_CTRL", CURLOPT_HSTS_CTRL, CURLOT_LONG, 0},
    {"HTTP09_ALLOWED", CURLOPT_HTTP09_ALLOWED, CURLOT_LONG, 0},
    {"HTTP200ALIASES", CURLOPT_HTTP200ALIASES, CURLOT_SLIST, 0},
@@ -681,13 +735,14 @@ index e69c658b0..585a6638b 100644
 +      CURLOT_STRING, 0},
 +  {"HTTP2_SETTINGS", CURLOPT_HTTP2_SETTINGS, CURLOT_STRING, 0},
 +  {"HTTP2_WINDOW_UPDATE", CURLOPT_HTTP2_WINDOW_UPDATE, CURLOT_LONG, 0},
++  {"HTTP2_STREAMS", CURLOPT_HTTP2_STREAMS, CURLOT_STRING, 0},
    {"HTTPAUTH", CURLOPT_HTTPAUTH, CURLOT_VALUES, 0},
    {"HTTPGET", CURLOPT_HTTPGET, CURLOT_LONG, 0},
 +  {"HTTPBASEHEADER", CURLOPT_HTTPBASEHEADER, CURLOT_SLIST, 0},
    {"HTTPHEADER", CURLOPT_HTTPHEADER, CURLOT_SLIST, 0},
    {"HTTPPOST", CURLOPT_HTTPPOST, CURLOT_OBJECT, 0},
    {"HTTPPROXYTUNNEL", CURLOPT_HTTPPROXYTUNNEL, CURLOT_LONG, 0},
-@@ -305,18 +311,23 @@ struct curl_easyoption Curl_easyopts[] = {
+@@ -305,18 +312,23 @@ struct curl_easyoption Curl_easyopts[] = {
    {"SSLKEYTYPE", CURLOPT_SSLKEYTYPE, CURLOT_STRING, 0},
    {"SSLKEY_BLOB", CURLOPT_SSLKEY_BLOB, CURLOT_BLOB, 0},
    {"SSLVERSION", CURLOPT_SSLVERSION, CURLOT_VALUES, 0},
@@ -711,12 +766,12 @@ index e69c658b0..585a6638b 100644
    {"STDERR", CURLOPT_STDERR, CURLOT_OBJECT, 0},
    {"STREAM_DEPENDS", CURLOPT_STREAM_DEPENDS, CURLOT_OBJECT, 0},
    {"STREAM_DEPENDS_E", CURLOPT_STREAM_DEPENDS_E, CURLOT_OBJECT, 0},
-@@ -373,6 +384,6 @@ struct curl_easyoption Curl_easyopts[] = {
+@@ -373,6 +385,6 @@ struct curl_easyoption Curl_easyopts[] = {
   */
  int Curl_easyopts_check(void)
  {
 -  return ((CURLOPT_LASTENTRY%10000) != (323 + 1));
-+  return ((CURLOPT_LASTENTRY%10000) != (333 + 1));
++  return ((CURLOPT_LASTENTRY%10000) != (334 + 1));
  }
  #endif
 diff --git a/lib/http.c b/lib/http.c
@@ -1008,7 +1063,7 @@ index be6d442e8..ca537314a 100644
    }
  
 diff --git a/lib/http2.c b/lib/http2.c
-index 973848484..a4bda9b97 100644
+index 973848484..36654499d 100644
 --- a/lib/http2.c
 +++ b/lib/http2.c
 @@ -51,6 +51,7 @@
@@ -1028,7 +1083,7 @@ index 973848484..a4bda9b97 100644
  /* on receiving from TLS, we prep for holding a full stream window */
  #define H2_NW_RECV_CHUNKS       (H2_STREAM_WINDOW_SIZE / H2_CHUNK_SIZE)
  /* on send into TLS, we just want to accumulate small frames */
-@@ -87,24 +88,84 @@
+@@ -87,26 +88,87 @@
   * will block their received QUOTA in the connection window. And if we
   * run out of space, the server is blocked from sending us any data.
   * See #10988 for an issue with this. */
@@ -1060,14 +1115,17 @@ index 973848484..a4bda9b97 100644
 +  if(data->set.str[STRING_HTTP2_SETTINGS]) {
 +    http2_settings = data->set.str[STRING_HTTP2_SETTINGS];
 +  }
-+
-+  // printf("USING settings %s\n", http2_settings);
-+
-+  char *tmp = strdup(http2_settings);
-+  char *setting = strtok(tmp, delimiter);
  
 -  iv[1].settings_id = NGHTTP2_SETTINGS_INITIAL_WINDOW_SIZE;
 -  iv[1].value = H2_STREAM_WINDOW_SIZE;
++  // printf("USING settings %s\n", http2_settings);
+ 
+-  iv[2].settings_id = NGHTTP2_SETTINGS_ENABLE_PUSH;
+-  iv[2].value = data->multi->push_cb != NULL;
++  char *tmp = strdup(http2_settings);
++  char *setting = strtok(tmp, delimiter);
+ 
+-  return 3;
 +  // loop through the string to extract all other tokens
 +  while(setting != NULL) {
 +    // deal with each setting
@@ -1107,22 +1165,98 @@ index 973848484..a4bda9b97 100644
 +    setting = strtok(NULL, delimiter);
 +  }
 +  free(tmp);
- 
--  iv[2].settings_id = NGHTTP2_SETTINGS_ENABLE_PUSH;
--  iv[2].value = data->multi->push_cb != NULL;
++
 +  // curl-impersonate:
 +  // Up until Chrome 98, there was a randomly chosen setting number in the
 +  // HTTP2 SETTINGS frame. This might be something similar to TLS GREASE.
 +  // However, it seems to have been removed since.
 +  // Curl_rand(data, (unsigned char *)&iv[4].settings_id, sizeof(iv[4].settings_id));
 +  // Curl_rand(data, (unsigned char *)&iv[4].value, sizeof(iv[4].value));
- 
--  return 3;
++
 +  return i;
  }
  
++
  static ssize_t populate_binsettings(uint8_t *binsettings,
-@@ -504,8 +565,22 @@ static CURLcode cf_h2_ctx_init(struct Curl_cfilter *cf,
+                                     struct Curl_easy *data)
+ {
+@@ -165,6 +227,75 @@ static void cf_h2_ctx_free(struct cf_h2_ctx *ctx)
+   }
+ }
+ 
++static CURLcode http2_set_stream_priority(struct Curl_cfilter *cf,
++                                          struct Curl_easy *data,
++                                          int32_t stream_id,
++                                          int32_t dep_stream_id,
++                                          int32_t weight,
++                                          int exclusive
++                                          )
++{
++  int rv;
++  struct cf_h2_ctx *ctx = cf->ctx;
++  nghttp2_priority_spec pri_spec;
++
++  nghttp2_priority_spec_init(&pri_spec, dep_stream_id, weight, exclusive);
++  rv = nghttp2_submit_priority(ctx->h2, NGHTTP2_FLAG_NONE,
++                               stream_id, &pri_spec);
++  if(rv) {
++    failf(data, "nghttp2_submit_priority() failed: %s(%d)",
++          nghttp2_strerror(rv), rv);
++    return CURLE_HTTP2;
++  }
++
++  return CURLE_OK;
++}
++
++/*
++ * curl-impersonate: Firefox uses an elaborate scheme of http/2 streams to
++ * split the load for html/js/css/images. It builds a tree of streams with
++ * different weights (priorities) by default and communicates this to the
++ * server. Imitate that behavior.
++ */
++static CURLcode http2_set_stream_priorities(struct Curl_cfilter *cf,
++                                            struct Curl_easy *data)
++{
++  CURLcode result;
++  char *stream_delimiter = ",";
++  char *value_delimiter = ":";
++
++  if(!data->set.str[STRING_HTTP2_STREAMS])
++    return CURLE_OK;
++
++  char *tmp1 = strdup(data->set.str[STRING_HTTP2_STREAMS]);
++  char *end1;
++  char *stream = strtok_r(tmp1, stream_delimiter, &end1);
++
++  while(stream != NULL) {
++
++    char *tmp2 = strdup(stream);
++    char *end2;
++
++    int32_t stream_id = atoi(strtok_r(tmp2, value_delimiter, &end2));
++    int exclusive = atoi(strtok_r(NULL, value_delimiter, &end2));
++    int32_t dep_stream_id = atoi(strtok_r(NULL, value_delimiter, &end2));
++    int32_t weight = atoi(strtok_r(NULL, value_delimiter, &end2));
++
++    free(tmp2);
++
++    result = http2_set_stream_priority(cf, data, stream_id, dep_stream_id, weight, exclusive);
++    if(result) {
++      free(tmp1);
++      return result;
++    }
++
++    stream = strtok_r(NULL, stream_delimiter, &end1);
++  }
++
++  free(tmp1);
++  return CURLE_OK;
++}
++
+ static CURLcode h2_progress_egress(struct Curl_cfilter *cf,
+                                   struct Curl_easy *data);
+ 
+@@ -504,8 +635,22 @@ static CURLcode cf_h2_ctx_init(struct Curl_cfilter *cf,
      }
    }
  
@@ -1147,7 +1281,24 @@ index 973848484..a4bda9b97 100644
    if(rc) {
      failf(data, "nghttp2_session_set_local_window_size() failed: %s(%d)",
            nghttp2_strerror(rc), rc);
-@@ -1747,11 +1822,17 @@ out:
+@@ -513,6 +658,16 @@ static CURLcode cf_h2_ctx_init(struct Curl_cfilter *cf,
+     goto out;
+   }
+ 
++  // curl-impersonate: set stream priorities
++  result = http2_set_stream_priorities(cf, data);
++  if(result)
++    goto out;
++
++#define FIREFOX_DEFAULT_STREAM_ID   (15)
++  /* Best effort to set the request's stream id to 15, like Firefox does. */
++  // Let's ignore this for now, as it seems not to be targeted as fingerprints.
++  // nghttp2_session_set_next_stream_id(ctx->h2, FIREFOX_DEFAULT_STREAM_ID);
++
+   /* all set, traffic will be send on connect */
+   result = CURLE_OK;
+   CURL_TRC_CF(data, cf, "[0] created h2 session%s",
+@@ -1747,11 +1902,19 @@ out:
    return rv;
  }
  
@@ -1156,6 +1307,7 @@ index 973848484..a4bda9b97 100644
 + * instead of NGINX default stream weight.
 + */
 +#define CHROME_DEFAULT_STREAM_WEIGHT    (256)
++#define FIREFOX_DEFAULT_STREAM_WEIGHT  (42)
 +
  static int sweight_wanted(const struct Curl_easy *data)
  {
@@ -1163,13 +1315,35 @@ index 973848484..a4bda9b97 100644
    return data->set.priority.weight?
 -    data->set.priority.weight : NGHTTP2_DEFAULT_WEIGHT;
 +    data->set.priority.weight : CHROME_DEFAULT_STREAM_WEIGHT;
++    // data->set.priority.weight : FIREFOX_DEFAULT_STREAM_WEIGHT;
  }
  
  static int sweight_in_effect(const struct Curl_easy *data)
-@@ -1773,9 +1854,11 @@ static void h2_pri_spec(struct Curl_easy *data,
+@@ -1759,6 +1922,7 @@ static int sweight_in_effect(const struct Curl_easy *data)
+   /* 0 weight is not set by user and we take the nghttp2 default one */
+   return data->state.priority.weight?
+     data->state.priority.weight : NGHTTP2_DEFAULT_WEIGHT;
++    // data->state.priority.weight : FIREFOX_DEFAULT_STREAM_WEIGHT;
+ }
+ 
+ /*
+@@ -1767,15 +1931,24 @@ static int sweight_in_effect(const struct Curl_easy *data)
+  * struct.
+  */
+ 
++/*
++ * curl-impersonate: By default Firefox uses stream 13 as the "parent" of the
++ * stream that fetches the main html resource of the web page.
++ */
++#define FIREFOX_DEFAULT_STREAM_DEP  (13)
++
+ static void h2_pri_spec(struct Curl_easy *data,
+                         nghttp2_priority_spec *pri_spec)
+ {
    struct Curl_data_priority *prio = &data->set.priority;
    struct stream_ctx *depstream = H2_STREAM_CTX(prio->parent);
    int32_t depstream_id = depstream? depstream->id:0;
++  // int32_t depstream_id = depstream? depstream->id:FIREFOX_DEFAULT_STREAM_DEP;
 +  /* curl-impersonate: Set stream exclusive flag to true. */
 +  int exclusive = 1;
    nghttp2_priority_spec_init(pri_spec, depstream_id,
@@ -1179,7 +1353,7 @@ index 973848484..a4bda9b97 100644
    data->state.priority = *prio;
  }
  
-@@ -1792,20 +1875,24 @@ static CURLcode h2_progress_egress(struct Curl_cfilter *cf,
+@@ -1792,20 +1965,24 @@ static CURLcode h2_progress_egress(struct Curl_cfilter *cf,
    struct stream_ctx *stream = H2_STREAM_CTX(data);
    int rv = 0;
  
@@ -1228,10 +1402,10 @@ index 80e183480..8ee390b7e 100644
   * Store nghttp2 version info in this buffer.
 diff --git a/lib/impersonate.c b/lib/impersonate.c
 new file mode 100644
-index 000000000..00a2ba9c3
+index 000000000..1b6eeb9e9
 --- /dev/null
 +++ b/lib/impersonate.c
-@@ -0,0 +1,745 @@
+@@ -0,0 +1,784 @@
 +#include "curl_setup.h"
 +
 +#include <curl/curl.h>
@@ -1973,16 +2147,55 @@ index 000000000..00a2ba9c3
 +    .http2_pseudo_headers_order = "mspa"
 +  },
 +  {
++    .target = "firefox120",
++    .httpversion = CURL_HTTP_VERSION_2_0,
++    .ssl_version = CURL_SSLVERSION_TLSv1_2 | CURL_SSLVERSION_MAX_DEFAULT,
++    .ciphers =
++      "TLS_AES_128_GCM_SHA256,"
++      "TLS_CHACHA20_POLY1305_SHA256,"
++      "TLS_AES_256_GCM_SHA384,"
++      "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,"
++      "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,"
++      "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,"
++      "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,"
++      "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,"
++      "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,"
++      "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,"
++      "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,"
++      "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,"
++      "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,"
++      "TLS_RSA_WITH_AES_128_GCM_SHA256,"
++      "TLS_RSA_WITH_AES_256_GCM_SHA384,"
++      "TLS_RSA_WITH_AES_128_CBC_SHA,"
++      "TLS_RSA_WITH_AES_256_CBC_SHA",
++    .http_headers = {
++      "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:121.0) Gecko/20100101 Firefox/121.0",
++      "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
++      "Accept-Language: en-US,en;q=0.5",
++      "Accept-Encoding: gzip, deflate, br",
++      "Upgrade-Insecure-Requests: 1",
++      "Sec-Fetch-Dest: document",
++      "Sec-Fetch-Mode: navigate",
++      "Sec-Fetch-Site: none",
++      "Sec-Fetch-User: ?1",
++      "Te: trailers"
++    },
++    .http2_settings = "1:65536;4:131072;5:16384",
++    .http2_window_update = 12517377,
++    .http2_pseudo_headers_order = "mpas",
++    .http2_streams = "3:0:0:201,5:0:0:101,7:0:0:1,9:0:7:1,11:0:3:1,13:0:0:241"
++  },
++  {
 +    /* Last one must be NULL. */
 +    .target = NULL
 +  }
 +};
 diff --git a/lib/impersonate.h b/lib/impersonate.h
 new file mode 100644
-index 000000000..0158d5477
+index 000000000..e0e92fc3c
 --- /dev/null
 +++ b/lib/impersonate.h
-@@ -0,0 +1,47 @@
+@@ -0,0 +1,48 @@
 +#ifndef HEADER_CURL_IMPERSONATE_H
 +#define HEADER_CURL_IMPERSONATE_H
 +
@@ -2017,6 +2230,7 @@ index 000000000..0158d5477
 +  const char *http2_pseudo_headers_order;
 +  const char *http2_settings;
 +  int http2_window_update;
++  const char *http2_streams;
 +  bool tls_permute_extensions;
 +  const char *ech;
 +  /* Other TLS options will come here in the future once they are
@@ -2045,7 +2259,7 @@ index 5456113be..85841f769 100644
  #ifdef USE_WINSOCK
    multi->wsa_event = WSACreateEvent();
 diff --git a/lib/setopt.c b/lib/setopt.c
-index a08140cce..fe468ca87 100644
+index a08140cce..f64a89f98 100644
 --- a/lib/setopt.c
 +++ b/lib/setopt.c
 @@ -51,6 +51,7 @@
@@ -2108,7 +2322,7 @@ index a08140cce..fe468ca87 100644
  #endif
    case CURLOPT_IPRESOLVE:
      arg = va_arg(param, long);
-@@ -2936,6 +2975,31 @@ CURLcode Curl_vsetopt(struct Curl_easy *data, CURLoption option, va_list param)
+@@ -2936,6 +2975,35 @@ CURLcode Curl_vsetopt(struct Curl_easy *data, CURLoption option, va_list param)
    case CURLOPT_SSL_ENABLE_ALPN:
      data->set.ssl_enable_alpn = (0 != va_arg(param, long));
      break;
@@ -2136,11 +2350,15 @@ index a08140cce..fe468ca87 100644
 +      return CURLE_BAD_FUNCTION_ARGUMENT;
 +    data->set.http2_window_update = arg;
 +    break;
++  case CURLOPT_HTTP2_STREAMS:
++    result = Curl_setstropt(&data->set.str[STRING_HTTP2_STREAMS],
++                            va_arg(param, char *));
++    break;
 +#endif
  #ifdef USE_UNIX_SOCKETS
    case CURLOPT_UNIX_SOCKET_PATH:
      data->set.abstract_unix_socket = FALSE;
-@@ -3128,6 +3192,31 @@ CURLcode Curl_vsetopt(struct Curl_easy *data, CURLoption option, va_list param)
+@@ -3128,6 +3196,31 @@ CURLcode Curl_vsetopt(struct Curl_easy *data, CURLoption option, va_list param)
      data->set.ws_raw_mode = raw;
      break;
    }
@@ -2246,7 +2464,7 @@ index b81785fe2..699e8037a 100644
  
      if(waitpipe)
 diff --git a/lib/urldata.h b/lib/urldata.h
-index ff661482e..b78408094 100644
+index ff661482e..dc95784b0 100644
 --- a/lib/urldata.h
 +++ b/lib/urldata.h
 @@ -53,6 +53,15 @@
@@ -2304,7 +2522,7 @@ index ff661482e..b78408094 100644
    /* Dynamically allocated strings, MUST be freed before this struct is
       killed. */
    struct dynamically_allocated_data {
-@@ -1628,6 +1655,12 @@ enum dupstring {
+@@ -1628,6 +1655,13 @@ enum dupstring {
    STRING_SSL_EC_CURVES,
    STRING_AWS_SIGV4, /* Parameters for V4 signature */
    STRING_HAPROXY_CLIENT_IP,     /* CURLOPT_HAPROXY_CLIENT_IP */
@@ -2312,12 +2530,13 @@ index ff661482e..b78408094 100644
 +  STRING_SSL_CERT_COMPRESSION,
 +  STRING_HTTP2_PSEUDO_HEADERS_ORDER,
 +  STRING_HTTP2_SETTINGS,
++  STRING_HTTP2_STREAMS,
 +  STRING_ECH_CONFIG,            /* CURLOPT_ECH_CONFIG */
 +  STRING_ECH_PUBLIC,            /* CURLOPT_ECH_PUBLIC */
  
    /* -- end of null-terminated strings -- */
  
-@@ -1921,6 +1954,9 @@ struct UserDefined {
+@@ -1921,6 +1955,9 @@ struct UserDefined {
    BIT(tcp_keepalive);  /* use TCP keepalives */
    BIT(tcp_fastopen);   /* use TCP Fast Open */
    BIT(ssl_enable_alpn);/* TLS ALPN extension? */
@@ -2327,7 +2546,7 @@ index ff661482e..b78408094 100644
    BIT(path_as_is);     /* allow dotdots? */
    BIT(pipewait);       /* wait for multiplex status before starting a new
                            connection */
-@@ -1941,6 +1977,10 @@ struct UserDefined {
+@@ -1941,6 +1978,10 @@ struct UserDefined {
  #ifdef USE_WEBSOCKETS
    BIT(ws_raw_mode);
  #endif
@@ -3147,10 +3366,10 @@ index 906e23e14..3a492996b 100644
  
  void config_free(struct OperationConfig *config)
 diff --git a/src/tool_cfgable.h b/src/tool_cfgable.h
-index 57e8fce52..5174bfaa7 100644
+index 57e8fce52..ea51bff00 100644
 --- a/src/tool_cfgable.h
 +++ b/src/tool_cfgable.h
-@@ -161,8 +161,13 @@ struct OperationConfig {
+@@ -161,8 +161,14 @@ struct OperationConfig {
    bool crlf;
    char *customrequest;
    char *ssl_ec_curves;
@@ -3161,10 +3380,11 @@ index 57e8fce52..5174bfaa7 100644
 +  char *http2_pseudo_headers_order;
 +  char *http2_settings;
 +  long http2_window_update;
++  char *http2_streams;
    long httpversion;
    bool http09_allowed;
    bool nobuffer;
-@@ -192,6 +197,7 @@ struct OperationConfig {
+@@ -192,6 +198,7 @@ struct OperationConfig {
    struct curl_slist *prequote;
    long ssl_version;
    long ssl_version_max;
@@ -3172,7 +3392,7 @@ index 57e8fce52..5174bfaa7 100644
    long proxy_ssl_version;
    long ip_version;
    long create_file_mode; /* CURLOPT_NEW_FILE_PERMS */
-@@ -268,6 +274,8 @@ struct OperationConfig {
+@@ -268,6 +275,8 @@ struct OperationConfig {
    bool proxy_ssl_auto_client_cert; /* proxy version of ssl_auto_client_cert */
    char *oauth_bearer;             /* OAuth 2.0 bearer token */
    bool noalpn;                    /* enable/disable TLS ALPN extension */
@@ -3181,7 +3401,7 @@ index 57e8fce52..5174bfaa7 100644
    char *unix_socket_path;         /* path to Unix domain socket */
    bool abstract_unix_socket;      /* path to an abstract Unix domain socket */
    bool falsestart;
-@@ -298,6 +306,11 @@ struct OperationConfig {
+@@ -298,6 +307,11 @@ struct OperationConfig {
    struct State state;             /* for create_transfer() */
    bool rm_partial;                /* on error, remove partially written output
                                       files */
@@ -3194,10 +3414,10 @@ index 57e8fce52..5174bfaa7 100644
  
  struct GlobalConfig {
 diff --git a/src/tool_getparam.c b/src/tool_getparam.c
-index 5fa1ace10..a5df5601a 100644
+index 5fa1ace10..199f5746b 100644
 --- a/src/tool_getparam.c
 +++ b/src/tool_getparam.c
-@@ -296,6 +296,17 @@ static const struct LongShort aliases[]= {
+@@ -296,6 +296,18 @@ static const struct LongShort aliases[]= {
    {"EC", "etag-save",                ARG_FILENAME},
    {"ED", "etag-compare",             ARG_FILENAME},
    {"EE", "curves",                   ARG_STRING},
@@ -3212,10 +3432,11 @@ index 5fa1ace10..a5df5601a 100644
 +#ifdef USE_ECH
 +  {"ER", "ech",                      ARG_STRING},
 +#endif
++  {"EV", "http2-streams",            ARG_STRING},
    {"f",  "fail",                     ARG_BOOL},
    {"fa", "fail-early",               ARG_BOOL},
    {"fb", "styled-output",            ARG_BOOL},
-@@ -2124,6 +2135,62 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
+@@ -2124,6 +2136,67 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
          GetStr(&config->ssl_ec_curves, nextarg);
          break;
  
@@ -3261,6 +3482,11 @@ index 5fa1ace10..a5df5601a 100644
 +          return err;
 +        if(config->http2_window_update < -1)
 +          return PARAM_BAD_NUMERIC;
++        break;
++
++      case 'V':
++        /* --http2-streams */
++        GetStr(&config->http2_streams, nextarg);
 +        break;
 +
 +#ifdef USE_ECH
@@ -3333,10 +3559,10 @@ index 4e7a6dd63..8093b7f8e 100644
     "Disable buffering of the output stream",
     CURLHELP_CURL},
 diff --git a/src/tool_operate.c b/src/tool_operate.c
-index c805b7732..81ba30670 100644
+index c805b7732..01743da1c 100644
 --- a/src/tool_operate.c
 +++ b/src/tool_operate.c
-@@ -1522,6 +1522,22 @@ static CURLcode single_transfer(struct GlobalConfig *global,
+@@ -1522,6 +1522,26 @@ static CURLcode single_transfer(struct GlobalConfig *global,
              return result;
            }
  
@@ -3355,11 +3581,15 @@ index c805b7732..81ba30670 100644
 +                      CURLOPT_HTTP2_WINDOW_UPDATE,
 +                      config->http2_window_update);
 +
++          if(config->http2_streams)
++            my_setopt_str(curl,
++                          CURLOPT_HTTP2_STREAMS,
++                          config->http2_streams);
 +
          } /* (proto_http) */
  
          if(proto_ftp)
-@@ -1610,6 +1626,14 @@ static CURLcode single_transfer(struct GlobalConfig *global,
+@@ -1610,6 +1630,14 @@ static CURLcode single_transfer(struct GlobalConfig *global,
          if(config->ssl_ec_curves)
            my_setopt_str(curl, CURLOPT_SSL_EC_CURVES, config->ssl_ec_curves);
  
@@ -3374,7 +3604,7 @@ index c805b7732..81ba30670 100644
          if(config->writeout)
            my_setopt_str(curl, CURLOPT_CERTINFO, 1L);
  
-@@ -1942,6 +1966,10 @@ static CURLcode single_transfer(struct GlobalConfig *global,
+@@ -1942,6 +1970,10 @@ static CURLcode single_transfer(struct GlobalConfig *global,
            my_setopt_str(curl, CURLOPT_PROXY_TLS13_CIPHERS,
                          config->proxy_cipher13_list);
  
@@ -3385,7 +3615,7 @@ index c805b7732..81ba30670 100644
          /* new in libcurl 7.9.2: */
          if(config->disable_epsv)
            /* disable it */
-@@ -2151,6 +2179,14 @@ static CURLcode single_transfer(struct GlobalConfig *global,
+@@ -2151,6 +2183,14 @@ static CURLcode single_transfer(struct GlobalConfig *global,
            my_setopt(curl, CURLOPT_SSL_ENABLE_ALPN, 0L);
          }
  
@@ -3400,7 +3630,7 @@ index c805b7732..81ba30670 100644
          /* new in 7.40.0, abstract support added in 7.53.0 */
          if(config->unix_socket_path) {
            if(config->abstract_unix_socket) {
-@@ -2199,6 +2235,16 @@ static CURLcode single_transfer(struct GlobalConfig *global,
+@@ -2199,6 +2239,16 @@ static CURLcode single_transfer(struct GlobalConfig *global,
          if(config->hsts)
            my_setopt_str(curl, CURLOPT_HSTS, config->hsts);
  
