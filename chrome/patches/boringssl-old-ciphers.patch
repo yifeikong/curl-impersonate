@@ -1,3 +1,86 @@
+diff --git a/ssl/handshake_client.cc b/ssl/handshake_client.cc
+index 971ebd0b1..def530b33 100644
+--- a/ssl/handshake_client.cc
++++ b/ssl/handshake_client.cc
+@@ -215,13 +215,13 @@ static void ssl_get_client_disabled(const SSL_HANDSHAKE *hs,
+   }
+ }
+ 
+-static bool ssl_add_tls13_cipher(CBB *cbb, uint16_t cipher_id,
+-                                 ssl_compliance_policy_t policy) {
+-  if (ssl_tls13_cipher_meets_policy(cipher_id, policy)) {
+-    return CBB_add_u16(cbb, cipher_id);
+-  }
+-  return true;
+-}
++// static bool ssl_add_tls13_cipher(CBB *cbb, uint16_t cipher_id,
++//                                  ssl_compliance_policy_t policy) {
++//   if (ssl_tls13_cipher_meets_policy(cipher_id, policy)) {
++//     return CBB_add_u16(cbb, cipher_id);
++//   }
++//   return true;
++// }
+ 
+ static bool ssl_write_client_cipher_list(const SSL_HANDSHAKE *hs, CBB *out,
+                                          ssl_client_hello_type_t type) {
+@@ -240,28 +240,37 @@ static bool ssl_write_client_cipher_list(const SSL_HANDSHAKE *hs, CBB *out,
+     return false;
+   }
+ 
++  // curl-impersonate: these suites are added uniformly with other suites.
++  //
+   // Add TLS 1.3 ciphers. Order ChaCha20-Poly1305 relative to AES-GCM based on
+   // hardware support.
+-  if (hs->max_version >= TLS1_3_VERSION) {
+-    const bool has_aes_hw = ssl->config->aes_hw_override
+-                                ? ssl->config->aes_hw_override_value
+-                                : EVP_has_aes_hardware();
+-
+-    if ((!has_aes_hw &&  //
+-         !ssl_add_tls13_cipher(&child,
+-                               TLS1_3_CK_CHACHA20_POLY1305_SHA256 & 0xffff,
+-                               ssl->config->tls13_cipher_policy)) ||
+-        !ssl_add_tls13_cipher(&child, TLS1_3_CK_AES_128_GCM_SHA256 & 0xffff,
+-                              ssl->config->tls13_cipher_policy) ||
+-        !ssl_add_tls13_cipher(&child, TLS1_3_CK_AES_256_GCM_SHA384 & 0xffff,
+-                              ssl->config->tls13_cipher_policy) ||
+-        (has_aes_hw &&  //
+-         !ssl_add_tls13_cipher(&child,
+-                               TLS1_3_CK_CHACHA20_POLY1305_SHA256 & 0xffff,
+-                               ssl->config->tls13_cipher_policy))) {
+-      return false;
+-    }
+-  }
++  // if (hs->max_version >= TLS1_3_VERSION) {
++  //   const bool has_aes_hw = ssl->config->aes_hw_override
++  //                               ? ssl->config->aes_hw_override_value
++  //                               : EVP_has_aes_hardware();
++  //
++    // TLS 1.3 suites are mandatory, see:
++    // https://datatracker.ietf.org/doc/html/rfc8446#section-9.1
++    //
++    // If there is AES hardware, which is common these days, BoringSSL uses this order:
++    // - TLS1_3_CK_AES_128_GCM_SHA256
++    // - TLS1_3_CK_AES_256_GCM_SHA384
++    // - TLS1_3_CK_CHACHA20_POLY1305_SHA256
++    // if ((!has_aes_hw &&  //
++    //      !ssl_add_tls13_cipher(&child,
++    //                            TLS1_3_CK_CHACHA20_POLY1305_SHA256 & 0xffff,
++    //                            ssl->config->tls13_cipher_policy)) ||
++    //     !ssl_add_tls13_cipher(&child, TLS1_3_CK_AES_128_GCM_SHA256 & 0xffff,
++    //                           ssl->config->tls13_cipher_policy) ||
++    //     !ssl_add_tls13_cipher(&child, TLS1_3_CK_AES_256_GCM_SHA384 & 0xffff,
++    //                           ssl->config->tls13_cipher_policy) ||
++    //     (has_aes_hw &&  //
++    //      !ssl_add_tls13_cipher(&child,
++    //                            TLS1_3_CK_CHACHA20_POLY1305_SHA256 & 0xffff,
++    //                            ssl->config->tls13_cipher_policy))) {
++    //   return false;
++    // }
++  // }
+ 
+   if (hs->min_version < TLS1_3_VERSION && type != ssl_client_hello_inner) {
+     bool any_enabled = false;
 diff --git a/ssl/internal.h b/ssl/internal.h
 index c9facb699..ec3c21fed 100644
 --- a/ssl/internal.h
@@ -19,7 +102,7 @@ index c9facb699..ec3c21fed 100644
  // Bits for |algorithm_prf| (handshake digest).
  #define SSL_HANDSHAKE_MAC_DEFAULT 0x1
 diff --git a/ssl/ssl_cipher.cc b/ssl/ssl_cipher.cc
-index fd8cef95d..1d6ffe88b 100644
+index fd8cef95d..deb12b0df 100644
 --- a/ssl/ssl_cipher.cc
 +++ b/ssl/ssl_cipher.cc
 @@ -197,6 +197,37 @@ static constexpr SSL_CIPHER kCiphers[] = {
@@ -161,6 +244,31 @@ index fd8cef95d..1d6ffe88b 100644
  
      // GCM based TLS v1.2 ciphersuites from RFC 5289
  
+@@ -467,15 +571,15 @@ Span<const SSL_CIPHER> AllCiphers() {
+   return MakeConstSpan(kCiphers, OPENSSL_ARRAY_SIZE(kCiphers));
+ }
+ 
+-static constexpr size_t NumTLS13Ciphers() {
+-  size_t num = 0;
+-  for (const auto &cipher : kCiphers) {
+-    if (cipher.algorithm_mkey == SSL_kGENERIC) {
+-      num++;
+-    }
+-  }
+-  return num;
+-}
++// static constexpr size_t NumTLS13Ciphers() {
++//   size_t num = 0;
++//   for (const auto &cipher : kCiphers) {
++//     if (cipher.algorithm_mkey == SSL_kGENERIC) {
++//       num++;
++//     }
++//   }
++//   return num;
++// }
+ 
+ #define CIPHER_ADD 1
+ #define CIPHER_KILL 2
 @@ -554,6 +658,11 @@ static const CIPHER_ALIAS kCipherAliases[] = {
      // MAC aliases
      {"SHA1", ~0u, ~0u, ~0u, SSL_SHA1, 0},
@@ -194,6 +302,41 @@ index fd8cef95d..1d6ffe88b 100644
        TLS1_CK_RSA_WITH_AES_128_GCM_SHA256 & 0xffff,
        TLS1_CK_RSA_WITH_AES_256_GCM_SHA384 & 0xffff,
        TLS1_CK_RSA_WITH_AES_128_SHA & 0xffff,
+@@ -1169,11 +1285,16 @@ bool ssl_create_cipher_list(UniquePtr<SSLCipherPreferenceList> *out_cipher_list,
+       TLS1_CK_PSK_WITH_AES_256_CBC_SHA & 0xffff,
+       SSL3_CK_RSA_DES_192_CBC3_SHA & 0xffff,
+   };
++  // curl-impersonate: add TLS 1.3 ciphers here for ordering
++  static const uint16_t kTLS13Ciphers[] = {
++      TLS1_3_CK_AES_128_GCM_SHA256 & 0xffff,
++      TLS1_3_CK_AES_256_GCM_SHA384 & 0xffff,
++      TLS1_3_CK_CHACHA20_POLY1305_SHA256 & 0xffff,
++  };
+ 
+   // Set up a linked list of ciphers.
+-  CIPHER_ORDER co_list[OPENSSL_ARRAY_SIZE(kAESCiphers) +
+-                       OPENSSL_ARRAY_SIZE(kChaChaCiphers) +
+-                       OPENSSL_ARRAY_SIZE(kLegacyCiphers)];
++  CIPHER_ORDER co_list[OPENSSL_ARRAY_SIZE(kCiphers)];
++
+   for (size_t i = 0; i < OPENSSL_ARRAY_SIZE(co_list); i++) {
+     co_list[i].next =
+         i + 1 < OPENSSL_ARRAY_SIZE(co_list) ? &co_list[i + 1] : nullptr;
+@@ -1209,8 +1330,13 @@ bool ssl_create_cipher_list(UniquePtr<SSLCipherPreferenceList> *out_cipher_list,
+     co_list[num++].cipher = SSL_get_cipher_by_value(id);
+     assert(co_list[num - 1].cipher != nullptr);
+   }
++  // curl-impersonate: add TLS 1.3 ciphers here for ordering
++  for (uint16_t id: kTLS13Ciphers) {
++    co_list[num++].cipher = SSL_get_cipher_by_value(id);
++    assert(co_list[num - 1].cipher != nullptr);
++  }
+   assert(num == OPENSSL_ARRAY_SIZE(co_list));
+-  static_assert(OPENSSL_ARRAY_SIZE(co_list) + NumTLS13Ciphers() ==
++  static_assert(OPENSSL_ARRAY_SIZE(co_list) ==
+                     OPENSSL_ARRAY_SIZE(kCiphers),
+                 "Not all ciphers are included in the cipher order");
+ 
 diff --git a/ssl/ssl_privkey.cc b/ssl/ssl_privkey.cc
 index 57116cd6c..fa1652832 100644
 --- a/ssl/ssl_privkey.cc
