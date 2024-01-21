@@ -412,7 +412,9 @@ $(CURL_VERSION)/.chrome: $(chrome_libs)	$(CURL_VERSION).tar.xz $(CURL_VERSION)/.
 	  config_flags="$$config_flags --enable-ech"; \
 	  config_flags="$$config_flags USE_CURL_SSLKEYLOGFILE=true"; \
 	  if test "$(static_build)" = "yes"; then \
-	    config_flags="$$config_flags --enable-static --disable-shared";
+	    config_flags="$$config_flags --enable-static --disable-shared"; \
+	  else \
+	    config_flags="$$config_flags --enable-static --enable-shared"; \
 	  fi; \
 	  if test -n "$(host_alias)"; then \
 	    config_flags="$$config_flags --host=$(host_alias)"; \
