@@ -198,7 +198,7 @@ $(brotli_static_libs): brotli-$(BROTLI_VERSION).tar.gz
 	        -DCMAKE_INSTALL_LIBDIR=lib \
 	        -DCMAKE_CXX_COMPILER=$(CXX) \
 	        -DCMAKE_C_COMPILER=$(CC) \
-			-DCMAKE_C_FLAGS=$(CFLAGS) \
+			-DCMAKE_C_FLAGS="$(CFLAGS)" \
 	        -DCMAKE_SYSTEM_NAME=$$system_name \
 	        -DCMAKE_SYSTEM_PROCESSOR=$(host_cpu) \
 	        ..
