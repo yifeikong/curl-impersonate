@@ -61,6 +61,8 @@ sed -i 's/-DUSE_NGHTTP2/-DUSE_NGHTTP2 -DNGHTTP2_STATICLIB/g' src/Makefile.mk
 sed -i 's/-lidn2/-lidn2 -lunistring -liconv/g' lib/Makefile.mk
 sed -i 's/-lidn2/-lidn2 -lunistring -liconv/g' src/Makefile.mk
 
+autoreconf -fi
+
 mingw32-make -f Makefile.dist mingw32-clean
 mingw32-make -f Makefile.dist mingw32 -j CFLAGS="-DUSE_HTTP2=1 -DUSE_WEBSOCKETS=1 -DUSE_ECH=1 -Wno-unused-variable" CFG=-ssl-zlib-nghttp2-idn2-brotli-zstd-ipv6
 

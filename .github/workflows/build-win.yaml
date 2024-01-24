@@ -4,6 +4,7 @@ on:
     branches:
       - main
       - feature/*
+      - bugfix/*
     tags:
       - "v*.*.*"
   pull_request:
@@ -51,6 +52,7 @@ jobs:
             git
             patch
             unzip
+            mingw-w64-${{ matrix.env }}-autotools
             mingw-w64-${{ matrix.env }}-brotli
             mingw-w64-${{ matrix.env }}-libidn2
             mingw-w64-${{ matrix.env }}-zstd
