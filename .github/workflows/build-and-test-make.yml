@@ -25,7 +25,6 @@ jobs:
       CC: ${{ github.workspace }}/zigshim/cc
       CXX: ${{ github.workspace }}/zigshim/cxx
       AR: ${{ github.workspace }}/zigshim/ar
-      LD: lld
       ZIG_TARGET: ${{ matrix.target }}
     strategy:
       fail-fast: false
@@ -53,7 +52,7 @@ jobs:
       - name: Install Ubuntu dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install build-essential pkg-config cmake ninja-build curl autoconf automake libtool lld
+          sudo apt-get install build-essential pkg-config cmake ninja-build curl autoconf automake libtool
           # Chrome version dependencies
           sudo apt-get install golang-go
           # Needed to compile 'minicurl'
