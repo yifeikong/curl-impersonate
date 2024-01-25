@@ -9,6 +9,7 @@ on:
 
 jobs:
   push-docker-image:
+    if: false
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
     steps:

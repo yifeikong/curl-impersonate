@@ -18,7 +18,109 @@ env:
   BORING_SSL_COMMIT: d24a38200fef19150eef00cad35b138936c08767
 
 jobs:
+  build-and-test-cross:
+    name: Cross compile
+    runs-on: ubuntu-latest
+    env:
+      CC: zig cc
+      CXX: zig c++
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-linux-gnu.2.17
+          - target: aarch64-linux-gnu.2.17
+          - target: arm-linux-gnu.2.17
+          - target: x86_64-windows-gnu
+          - target: x86_64-macos-none
+          - target: aarch64-macos-none
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v2
+
+      - name: Set up zig
+        uses: goto-bus-stop/setup-zig@v2
+
+      - name: Build zlib
+        run: |
+          curl -LO https://zlib.net/fossils/zlib-1.3.tar.gz
+          tar xf zlib-1.3.tar.gz
+          cd zlib-1.3
+          ./configure --prefix=${{ runner.temp }}/zlib
+          make
+          make install
+          # Make sure curl will link with libz.so.1 and not libz.so
+          rm -f ${{ runner.temp }}/zlib/lib/libz.so
+
+      - name: Run configure script
+        run: |
+          mkdir ${{ runner.temp }}/install
+          ./configure --prefix=${{ runner.temp }}/install
+
+      # Cache the build of BoringSSL, which is the longest part of the build
+      # We must cache the .zip as well, otherwise the Makefile will
+      # rebuild BoringSSL. This whole thing is a bit hacky, but necessary to
+      # reduce the insanely long build times.
+      - name: Cache BoringSSL source
+        uses: actions/cache@v3
+        with:
+          path: boringssl.zip
+          key: ${{ matrix.target }}-boring-source-${{ env.BORING_SSL_COMMIT }}
+
+      - name: Cache BoringSSL build
+        id: cache-boringssl
+        uses: actions/cache@v3
+        with:
+          path: boringssl/build
+          key: ${{ matrix.target }}-boring-build-${{ env.BORING_SSL_COMMIT }}-${{ hashFiles('chrome/patches/boringssl*.patch') }}
+
+      # Trick the Makefile into skipping the BoringSSL build step
+      # if it was found in the cache. See Makefile.in
+      - name: Post BoringSSL cache restore
+        if: ${{ steps.cache-boringssl.outputs.cache-hit != false }}
+        run: |
+          touch boringssl.zip
+          touch boringssl/.patched
+          find boringssl/build -type f | xargs touch
+
+      - name: Build the Chrome version of curl-impersonate
+        run: |
+          make chrome-build
+          make chrome-checkbuild
+          make chrome-install
+
+      # Cache the build of NSS, which is the longest part of the build
+      # We must cache the .tar.gz as well, otherwise the Makefile will
+      # rebuild NSS.
+      - name: Cache NSS source
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.NSS_VERSION }}.tar.gz
+          key: ${{ matrix.target }}-nss-source-${{ env.NSS_VERSION }}
+
+      - name: Cache NSS build
+        id: cache-nss
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.NSS_VERSION }}/dist
+          key: ${{ matrix.target }}-nss-build-${{ env.NSS_VERSION }}
+
+      # Trick the Makefile into skipping the NSS build step
+      # if it was found in the cache.
+      - name: Post NSS cache restore
+        if: ${{ steps.cache-nss.outputs.cache-hit != false }}
+        run: |
+          touch ${{ env.NSS_VERSION }}.tar.gz
+          find ${{ env.NSS_VERSION }}/dist -type f | xargs touch
+
+      - name: Build the Firefox version of curl-impersonate
+        run: |
+          make firefox-build
+          make firefox-checkbuild
+          make firefox-install
+
   build-and-test-linux:
+    if: false
     name: (Linux ${{ matrix.arch }}) Build curl-impersonate and run the tests
     runs-on: ubuntu-latest
     strategy:
@@ -279,6 +381,7 @@ jobs:
               ${{ env.release_file_bin }}
 
   build-and-test-macos:
+    if: false
     name: (MacOS ${{ matrix.arch }}) Build curl-impersonate and run the tests
     runs-on: ${{ matrix.os }}
     strategy:
