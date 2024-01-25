@@ -76,16 +76,6 @@ jobs:
           rm -f ${{ runner.temp }}/zlib/lib/libz.so
 
       - name: Run configure script
-        if: matrix.host == 'x86_64-linux-gnu'
-        run: |
-          mkdir ${{ runner.temp }}/install
-          ./configure --prefix=${{ runner.temp }}/install
-
-      # When cross compiling a more complicated configuration is needed, since
-      # curl's configure script can't figure out where some files and libraries
-      # are located. The locations used here are the ones used by Ubuntu.
-      - name: Run configure script (cross compiling)
-        if: matrix.host != 'x86_64-linux-gnu'
         run: |
           mkdir ${{ runner.temp }}/install
           ./configure --prefix=${{ runner.temp }}/install \
