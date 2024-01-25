@@ -25,8 +25,6 @@ jobs:
       CC: ${{ github.workspace }}/zigshim/cc
       CXX: ${{ github.workspace }}/zigshim/cxx
       AR: ${{ github.workspace }}/zigshim/ar
-      CFLAGS: ${{ matrix.cflags }}
-      LDFLAGS: ${{ matrix.ldflags }}
       ZIG_TARGET: ${{ matrix.target }}
     strategy:
       fail-fast: false
@@ -34,28 +32,10 @@ jobs:
         include:
           - target: x86_64-linux-gnu.2.17
             host: x86_64-linux-gnu
-            cflags:
-            ldflags:
           - target: aarch64-linux-gnu.2.17
             host: aarch64-linux-gnu
-            cflags:
-            ldflags:
           - target: arm-linux-gnueabihf.2.17
             host: arm-linux-gnueabihf
-            cflags:
-            ldflags:
-          - target: x86_64-windows-gnu
-            host: x86_64-windows
-            cflags: -I/usr/x86_64-w64-mingw32/include
-            ldflags: -L/usr/x86_64-w64-mingw32/lib
-          - target: x86_64-macos-none
-            host: x86_64-macos
-            cflags:
-            ldflags:
-          - target: aarch64-macos-none
-            host: aarch64-macos
-            cflags:
-            ldflags:
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2
@@ -75,10 +55,6 @@ jobs:
           sudo apt-get install libcurl4-openssl-dev
           # More dependencies for the tests
           sudo apt-get install tcpdump nghttp2-server libnss3
-
-      - name: Install Windows dependencies
-        run: |
-          sudo apt-get install mingw-w64
 
       - name: Install common dependencies
         run: |
