@@ -22,8 +22,8 @@ jobs:
     name: Cross compile
     runs-on: ubuntu-latest
     env:
-      CC: zig cc
-      CXX: zig c++
+      CC: ${{ github.workspace }}/zigshim/cc
+      CXX: ${{ github.workspace }}/zigshim/cxx
     strategy:
       fail-fast: false
       matrix:
