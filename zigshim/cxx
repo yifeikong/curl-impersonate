@@ -1,2 +1,2 @@
 #!/bin/bash
-zig c++ "$@"
+zig c++ -target $ZIG_TARGET "$@"

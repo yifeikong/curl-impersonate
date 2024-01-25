@@ -24,16 +24,23 @@ jobs:
     env:
       CC: ${{ github.workspace }}/zigshim/cc
       CXX: ${{ github.workspace }}/zigshim/cxx
+      ZIG_TARGET: ${{ matrix.target }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - target: x86_64-linux-gnu.2.17
+            host: x86_64-linux-gnu
           - target: aarch64-linux-gnu.2.17
+            host: aarch64-linux-gnu
           - target: arm-linux-gnu.2.17
+            host: arm-linux-gnu
           - target: x86_64-windows-gnu
+            host: x86_64-windows-gnu
           - target: x86_64-macos-none
+            host: x86_64-macos-none
           - target: aarch64-macos-none
+            host: aarch64-macos-none
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2
@@ -69,9 +76,24 @@ jobs:
           rm -f ${{ runner.temp }}/zlib/lib/libz.so
 
       - name: Run configure script
+        if: matrix.host == 'x86_64-linux-gnu'
         run: |
           mkdir ${{ runner.temp }}/install
           ./configure --prefix=${{ runner.temp }}/install
+
+      # When cross compiling a more complicated configuration is needed, since
+      # curl's configure script can't figure out where some files and libraries
+      # are located. The locations used here are the ones used by Ubuntu.
+      - name: Run configure script (cross compiling)
+        if: matrix.host != 'x86_64-linux-gnu'
+        run: |
+          mkdir ${{ runner.temp }}/install
+          ./configure --prefix=${{ runner.temp }}/install \
+                      --host=${{ matrix.host }} \
+                      --with-zlib=${{ runner.temp }}/zlib \
+                      --with-ca-path=/etc/ssl/certs \
+                      --with-ca-bundle=/etc/ssl/certs/ca-certificates.crt \
+                      --with-libnssckbi=/usr/lib/${{ matrix.host }}/nss
 
       # Cache the build of BoringSSL, which is the longest part of the build
       # We must cache the .zip as well, otherwise the Makefile will
