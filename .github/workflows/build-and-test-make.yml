@@ -24,6 +24,7 @@ jobs:
     env:
       CC: ${{ github.workspace }}/zigshim/cc
       CXX: ${{ github.workspace }}/zigshim/cxx
+      AR: ${{ github.workspace }}/zigshim/ar
       ZIG_TARGET: ${{ matrix.target }}
     strategy:
       fail-fast: false
