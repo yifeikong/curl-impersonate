@@ -41,6 +41,22 @@ jobs:
       - name: Set up zig
         uses: goto-bus-stop/setup-zig@v2
 
+      - name: Install Ubuntu dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install build-essential pkg-config cmake ninja-build curl autoconf automake libtool
+          # Chrome version dependencies
+          sudo apt-get install golang-go
+          # Needed to compile 'minicurl'
+          sudo apt-get install libcurl4-openssl-dev
+          # More dependencies for the tests
+          sudo apt-get install tcpdump nghttp2-server libnss3
+
+      - name: Install common dependencies
+        run: |
+          # Firefox version dependencies
+          pip3 install gyp-next
+
       - name: Build zlib
         run: |
           curl -LO https://zlib.net/fossils/zlib-1.3.tar.gz
