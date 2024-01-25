@@ -19,6 +19,7 @@ env:
 
 jobs:
   build-windows:
+    if: false
     name: Build windows binaries
     runs-on: windows-2019
     strategy:
