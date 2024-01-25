@@ -37,7 +37,7 @@ jobs:
             host: aarch64-linux-gnu
           - target: arm-linux-gnueabihf.2.17
             host: arm-linux-gnueabihf
-          - target: x86_64-windows-msvc
+          - target: x86_64-windows-gnu
             host: x86_64-windows
           - target: x86_64-macos-none
             host: x86_64-macos
