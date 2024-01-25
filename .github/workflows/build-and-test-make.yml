@@ -33,8 +33,8 @@ jobs:
             host: x86_64-linux-gnu
           - target: aarch64-linux-gnu.2.17
             host: aarch64-linux-gnu
-          - target: arm-linux-gnu.2.17
-            host: arm-linux-gnu
+          - target: arm-linux-gnueabi.2.17
+            host: arm-linux-gnueabi
           - target: x86_64-windows-gnu
             host: x86_64-windows-gnu
           - target: x86_64-macos-none
@@ -69,7 +69,7 @@ jobs:
           curl -LO https://zlib.net/fossils/zlib-1.3.tar.gz
           tar xf zlib-1.3.tar.gz
           cd zlib-1.3
-          ./configure --prefix=${{ runner.temp }}/zlib
+          CHOST=${{ matrix.host }} ./configure --prefix=${{ runner.temp }}/zlib
           make
           make install
           # Make sure curl will link with libz.so.1 and not libz.so
