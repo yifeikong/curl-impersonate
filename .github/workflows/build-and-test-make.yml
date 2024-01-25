@@ -36,11 +36,11 @@ jobs:
           - target: arm-linux-gnueabi.2.17
             host: arm-linux-gnueabi
           - target: x86_64-windows-gnu
-            host: x86_64-windows-gnu
+            host: x86_64-windows
           - target: x86_64-macos-none
-            host: x86_64-macos-none
+            host: x86_64-macos
           - target: aarch64-macos-none
-            host: aarch64-macos-none
+            host: aarch64-macos
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2
