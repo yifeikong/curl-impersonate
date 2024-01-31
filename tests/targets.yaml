@@ -63,34 +63,10 @@
   - null
   - null
   - safari_17.2_iOS
-# - - curl_ff91esr
-#   - null
-#   - null
-#   - firefox_91.6.0esr_win10
-# - - curl_ff95
-#   - null
-#   - null
-#   - firefox_95.0.2_win10
-# - - curl_ff98
-#   - null
-#   - null
-#   - firefox_98.0_win10
-# - - curl_ff100
-#   - null
-#   - null
-#   - firefox_100.0_win10
-# - - curl_ff102
-#   - null
-#   - null
-#   - firefox_102.0_win10
-# - - curl_ff109
-#   - null
-#   - null
-#   - firefox_109.0_win10
-# - - curl_ff117
-#   - null
-#   - null
-#   - firefox_117.0.1_win10
+- - curl_firefox120
+  - null
+  - null
+  - firefox_120_macOS
 
 # Test libcurl-impersonate by loading it with LD_PRELOAD to an app
 # linked against the regular libcurl and setting the
@@ -159,31 +135,7 @@
   - CURL_IMPERSONATE: safari17_2_ios
   - libcurl-impersonate-chrome
   - safari_17.2_iOS
-# - - minicurl
-#   - CURL_IMPERSONATE: ff91esr
-#   - libcurl-impersonate-ff
-#   - firefox_91.6.0esr_win10
-# - - minicurl
-#   - CURL_IMPERSONATE: ff95
-#   - libcurl-impersonate-ff
-#   - firefox_95.0.2_win10
-# - - minicurl
-#   - CURL_IMPERSONATE: ff98
-#   - libcurl-impersonate-ff
-#   - firefox_98.0_win10
-# - - minicurl
-#   - CURL_IMPERSONATE: ff100
-#   - libcurl-impersonate-ff
-#   - firefox_100.0_win10
-# - - minicurl
-#   - CURL_IMPERSONATE: ff102
-#   - libcurl-impersonate-ff
-#   - firefox_102.0_win10
-# - - minicurl
-#   - CURL_IMPERSONATE: ff109
-#   - libcurl-impersonate-ff
-#   - firefox_109.0_win10
-# - - minicurl
-#   - CURL_IMPERSONATE: ff117
-#   - libcurl-impersonate-ff
-#   - firefox_117.0.1_win10
+- - minicurl
+  - CURL_IMPERSONATE: firefox120
+  - libcurl-impersonate-chrome
+  - firefox_120_macOS
