@@ -172,7 +172,12 @@ jobs:
       - name: Reconfigure statically
         run: |
           set -e
-          ./configure --prefix=${{ runner.temp }}/install --enable-static
+          ./configure --prefix=${{ runner.temp }}/install --enable-static \
+                      --host=${{ matrix.host }} \
+                      --with-zlib=${{ runner.temp }}/zlib \
+                      --with-ca-path=/etc/ssl/certs \
+                      --with-ca-bundle=/etc/ssl/certs/ca-certificates.crt \
+                      --with-libnssckbi=/usr/lib/${{ matrix.host }}/nss
 
       - name: Rebuild statically
         run: |
