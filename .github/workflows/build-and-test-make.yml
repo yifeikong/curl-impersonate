@@ -31,10 +31,13 @@ jobs:
         include:
           - target: x86_64-linux-gnu.2.17
             host: x86_64-linux-gnu
+            capture_interface: eth0
           - target: aarch64-linux-gnu.2.17
             host: aarch64-linux-gnu
+            capture_interface: eth0
           - target: arm-linux-gnueabihf.2.17
             host: arm-linux-gnueabihf
+            capture_interface: eth0
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2
