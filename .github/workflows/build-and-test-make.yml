@@ -58,6 +58,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install build-essential pkg-config cmake ninja-build curl autoconf automake libtool
+          sudo apt-get install gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf
           # Chrome version dependencies
           sudo apt-get install golang-go
           # Needed to compile 'minicurl'
