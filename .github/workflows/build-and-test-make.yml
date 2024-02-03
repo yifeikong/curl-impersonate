@@ -25,6 +25,7 @@ jobs:
       CXX: ${{ github.workspace }}/zigshim/cxx
       AR: ${{ github.workspace }}/zigshim/ar
       ZIG_TARGET: ${{ matrix.target }}
+      CFLAGS: ${{ matrix.cflags }}
     strategy:
       fail-fast: false
       matrix:
@@ -32,12 +33,15 @@ jobs:
           - target: x86_64-linux-gnu.2.17
             host: x86_64-linux-gnu
             capture_interface: eth0
+            cflags:
           - target: aarch64-linux-gnu.2.17
             host: aarch64-linux-gnu
             capture_interface: eth0
+            cflags:
           - target: arm-linux-gnueabihf.2.17
             host: arm-linux-gnueabihf
             capture_interface: eth0
+            cflags: "-mfpu=vfp -mfloat-abi=hard -mcpu=arm1176jzf_s"
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2
