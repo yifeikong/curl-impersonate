@@ -17,8 +17,8 @@ env:
   BORING_SSL_COMMIT: d24a38200fef19150eef00cad35b138936c08767
 
 jobs:
-  build-and-test-cross:
-    name: Cross compile
+  build-and-test-linux:
+    name: (${{ matrix.host }}) Build curl-impersonate and run the tests
     runs-on: ubuntu-latest
     env:
       CC: ${{ github.workspace }}/zigshim/cc
