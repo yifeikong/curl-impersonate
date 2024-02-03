@@ -212,7 +212,6 @@ jobs:
               ${{ env.release_file_bin }}
 
   build-and-test-macos:
-    if: false
     name: (MacOS ${{ matrix.arch }}) Build curl-impersonate and run the tests
     runs-on: ${{ matrix.os }}
     strategy:
