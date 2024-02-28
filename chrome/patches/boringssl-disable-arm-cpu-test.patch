@@ -7,7 +7,7 @@ index 26ed321c0a..a0535f6a81 100644
  #endif
  
 -#if defined(TEST_ARM_CPUS)
-+#if defined(TEST_ARM_CPUS) && !defined(OPENSSL_STATIC_ARMCAP)
++#if 0
      if (strncmp(argv[i], "--cpu=", 6) == 0) {
        const char *cpu = argv[i] + 6;
        uint32_t armcap;
