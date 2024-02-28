@@ -153,7 +153,6 @@ jobs:
        # Upload pre-compiled binaries to GitHub releases page and Github actions archives.
       - name: Create tar release files for libcurl-impersonate
         run: |
-          find .
           cp ${{ runner.temp }}/zlib/lib/lib*.a ${{ runner.temp }}/install/lib
           cp nghttp2*/installed/lib/lib*.a ${{ runner.temp }}/install/lib
           cp brotli*/out/installed/lib/lib*.a ${{ runner.temp }}/install/lib
