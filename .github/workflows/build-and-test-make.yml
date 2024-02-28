@@ -157,8 +157,7 @@ jobs:
           cp ${{ runner.temp }}/zlib/lib/lib*.a ${{ runner.temp }}/install/lib
           cp nghttp2*/installed/lib/lib*.a ${{ runner.temp }}/install/lib
           cp brotli*/out/installed/lib/lib*.a ${{ runner.temp }}/install/lib
-          cp boringssl/build/crypto/libcrypto.a ${{ runner.temp }}/install/lib
-          cp boringssl/build/ssl/libssl.a ${{ runner.temp }}/install/lib
+          cp boringssl/build/lib/lib*.a ${{ runner.temp }}/install/lib
 
           cd ${{ runner.temp }}/install/lib
           ls -lah .
