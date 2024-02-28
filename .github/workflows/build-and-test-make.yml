@@ -240,7 +240,7 @@ jobs:
 
       - name: Install macOS dependencies
         run: |
-          brew install pkg-config make cmake ninja autoconf automake libtool
+          brew install pkg-config make cmake ninja autoconf automake libtool gpatch
           # Chrome version dependencies, install only not installed.
           which go || brew install go
           # Needed to compile 'minicurl'
