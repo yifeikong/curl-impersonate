@@ -49,7 +49,7 @@ jobs:
             target: arm-linux-gnueabihf.2.17
             host: arm-linux-gnueabihf
             capture_interface: eth0
-            cflags: "-mfloat-abi=soft -mcpu=arm1136j_s"
+            cflags: "-mfpu=vfp -mfloat-abi=hard -mcpu=arm1176jzf_s+slowfpvfmx+slowfpvmlx"
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2
