@@ -283,6 +283,16 @@ $(boringssl_static_libs): boringssl.zip boringssl/.patched
 	    ;;                  \
 	esac
 
+	# Determine if asm should be used
+	case $(host_cpu) in      \
+	  arm*)               \
+	    enable_asm=OFF   \
+	    ;;                  \
+	  *)                    \
+	    enable_asm=ON   \
+	    ;;                  \
+	esac
+
 	# The extra CMAKE_C_FLAGS are needed because otherwise boringssl fails to
 	# compile in release mode on some systems with gcc 12 (e.g. Fedora).
 	# In addition, guard these options with -Wno-unknown-warning-option to
@@ -294,6 +304,7 @@ $(boringssl_static_libs): boringssl.zip boringssl/.patched
 			-DCMAKE_C_COMPILER=$(CC) \
 			-DCMAKE_SYSTEM_NAME=$$system_name \
 			-DCMAKE_SYSTEM_PROCESSOR=$(host_cpu) \
+			-DOPENSSL_NO_ASM=$$enable_asm \
 			-GNinja \
 			..
 	@ninja@ -j$(SUBJOBS)
