@@ -284,13 +284,13 @@ $(boringssl_static_libs): boringssl.zip boringssl/.patched
 	esac
 
 	# Determine if asm should be used
-	case $(host_cpu) in      \
+	case $(host_cpu) in   \
 	  arm*)               \
-	    enable_asm=OFF   \
-	    ;;                  \
-	  *)                    \
-	    enable_asm=ON   \
-	    ;;                  \
+	    disable_asm=ON    \
+	    ;;                \
+	  *)                  \
+	    disable_asm=OFF   \
+	    ;;                \
 	esac
 
 	# The extra CMAKE_C_FLAGS are needed because otherwise boringssl fails to
@@ -304,7 +304,7 @@ $(boringssl_static_libs): boringssl.zip boringssl/.patched
 			-DCMAKE_C_COMPILER=$(CC) \
 			-DCMAKE_SYSTEM_NAME=$$system_name \
 			-DCMAKE_SYSTEM_PROCESSOR=$(host_cpu) \
-			-DOPENSSL_NO_ASM=$$enable_asm \
+			-DOPENSSL_NO_ASM=$$disable_asm \
 			-GNinja \
 			..
 	@ninja@ -j$(SUBJOBS)
