@@ -49,7 +49,7 @@ jobs:
             target: arm-linux-gnueabihf.2.17
             host: arm-linux-gnueabihf
             capture_interface: eth0
-            cflags: "-mcpu=arm1176jzf_s+slowfpvfmx+slowfpvmlx"
+            cflags: "-mcpu=arm1176jzf_s+slowfpvfmx+slowfpvmlx -fno-vectorize"
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2
