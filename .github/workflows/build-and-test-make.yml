@@ -52,7 +52,7 @@ jobs:
       - name: Set up zig
         uses: goto-bus-stop/setup-zig@v2
         with:
-          version: 0.12.0-dev.3097+5c0766b6c
+          version: 0.11.0
 
       - name: Install Ubuntu dependencies
         run: |
