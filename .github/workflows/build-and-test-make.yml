@@ -17,6 +17,7 @@ permissions:
 
 env:
   BORING_SSL_COMMIT: d24a38200fef19150eef00cad35b138936c08767
+  MACOSX_DEPLOYMENT_TARGET: 10.5
 
 jobs:
   build-and-test-linux:
