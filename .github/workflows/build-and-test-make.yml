@@ -75,6 +75,8 @@ jobs:
           sudo apt-get install libcurl4-openssl-dev
           # More dependencies for the tests
           sudo apt-get install tcpdump nghttp2-server libnss3
+          # libc-ares
+          sudo apt-get install -y libc-ares-dev
 
       - name: Build zlib
         run: |
