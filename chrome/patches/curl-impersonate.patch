@@ -421,7 +421,7 @@ index 3b536000a..d7135698f 100644
  /**
   * Return the n-th header entry or NULL if it does not exist.
 diff --git a/lib/easy.c b/lib/easy.c
-index 322d1a41b..95a6dff18 100644
+index 322d1a41b..e201fbc43 100644
 --- a/lib/easy.c
 +++ b/lib/easy.c
 @@ -74,6 +74,8 @@
@@ -433,7 +433,7 @@ index 322d1a41b..95a6dff18 100644
  
  #include "easy_lock.h"
  
-@@ -341,6 +343,194 @@ CURLsslset curl_global_sslset(curl_sslbackend id, const char *name,
+@@ -341,6 +343,202 @@ CURLsslset curl_global_sslset(curl_sslbackend id, const char *name,
    return rc;
  }
  
@@ -569,6 +569,14 @@ index 322d1a41b..95a6dff18 100644
 +      return ret;
 +  }
 +
++  if(opts->tls_grease) {
++    ret = curl_easy_setopt(data, CURLOPT_TLS_GREASE, opts->tls_grease);
++  }
++
++  if(opts->tls_extension_order) {
++    ret = curl_easy_setopt(data, CURLOPT_TLS_EXTENSION_ORDER, opts->tls_extension_order);
++  }
++
 +  /* Always enable all supported compressions. */
 +  ret = curl_easy_setopt(data, CURLOPT_ACCEPT_ENCODING, "");
 +  if(ret)
@@ -628,7 +636,7 @@ index 322d1a41b..95a6dff18 100644
  /*
   * curl_easy_init() is the external interface to alloc, setup and init an
   * easy handle that is returned. If anything goes wrong, NULL is returned.
-@@ -349,6 +539,8 @@ struct Curl_easy *curl_easy_init(void)
+@@ -349,6 +547,8 @@ struct Curl_easy *curl_easy_init(void)
  {
    CURLcode result;
    struct Curl_easy *data;
@@ -637,7 +645,7 @@ index 322d1a41b..95a6dff18 100644
  
    /* Make sure we inited the global SSL stuff */
    global_init_lock();
-@@ -371,6 +563,29 @@ struct Curl_easy *curl_easy_init(void)
+@@ -371,6 +571,29 @@ struct Curl_easy *curl_easy_init(void)
      return NULL;
    }
  
@@ -667,7 +675,7 @@ index 322d1a41b..95a6dff18 100644
    return data;
  }
  
-@@ -945,6 +1160,13 @@ struct Curl_easy *curl_easy_duphandle(struct Curl_easy *data)
+@@ -945,6 +1168,13 @@ struct Curl_easy *curl_easy_duphandle(struct Curl_easy *data)
      outcurl->state.referer_alloc = TRUE;
    }
  
@@ -681,7 +689,7 @@ index 322d1a41b..95a6dff18 100644
    /* Reinitialize an SSL engine for the new handle
     * note: the engine name has already been copied by dupset */
    if(outcurl->set.str[STRING_SSL_ENGINE]) {
-@@ -1004,6 +1226,9 @@ fail:
+@@ -1004,6 +1234,9 @@ fail:
   */
  void curl_easy_reset(struct Curl_easy *data)
  {
@@ -691,7 +699,7 @@ index 322d1a41b..95a6dff18 100644
    Curl_free_request_state(data);
  
    /* zero out UserDefined data: */
-@@ -1028,6 +1253,23 @@ void curl_easy_reset(struct Curl_easy *data)
+@@ -1028,6 +1261,23 @@ void curl_easy_reset(struct Curl_easy *data)
  #if !defined(CURL_DISABLE_HTTP) && !defined(CURL_DISABLE_DIGEST_AUTH)
    Curl_http_auth_cleanup_digest(data);
  #endif
@@ -1402,10 +1410,10 @@ index 80e183480..8ee390b7e 100644
   * Store nghttp2 version info in this buffer.
 diff --git a/lib/impersonate.c b/lib/impersonate.c
 new file mode 100644
-index 000000000..1b6eeb9e9
+index 000000000..4a41daf7c
 --- /dev/null
 +++ b/lib/impersonate.c
-@@ -0,0 +1,784 @@
+@@ -0,0 +1,818 @@
 +#include "curl_setup.h"
 +
 +#include <curl/curl.h>
@@ -1453,7 +1461,9 @@ index 000000000..1b6eeb9e9
 +      "Accept-Language: en-US,en;q=0.9"
 +    },
 +    .http2_settings = "1:65536;3:1000;4:6291456;6:262144",
-+    .http2_window_update = 15663105
++    .http2_window_update = 15663105,
++    .extension_order = NULL,
++    .ssl_grease = true
 +  },
 +  {
 +    .target = "chrome100",
@@ -1495,7 +1505,9 @@ index 000000000..1b6eeb9e9
 +      "Accept-Language: en-US,en;q=0.9"
 +    },
 +    .http2_settings = "1:65536;3:1000;4:6291456;6:262144",
-+    .http2_window_update = 15663105
++    .http2_window_update = 15663105,
++    .tls_extension_order = NULL,
++    .tls_grease = true
 +  },
 +  {
 +    .target = "chrome101",
@@ -1537,7 +1549,9 @@ index 000000000..1b6eeb9e9
 +      "Accept-Language: en-US,en;q=0.9"
 +    },
 +    .http2_settings = "1:65536;3:1000;4:6291456;6:262144",
-+    .http2_window_update = 15663105
++    .http2_window_update = 15663105,
++    .tls_extension_order = NULL,
++    .tls_grease = true
 +  },
 +  {
 +    .target = "chrome104",
@@ -1579,7 +1593,9 @@ index 000000000..1b6eeb9e9
 +      "Accept-Language: en-US,en;q=0.9"
 +    },
 +    .http2_settings = "1:65536;3:1000;4:6291456;6:262144",
-+    .http2_window_update = 15663105
++    .http2_window_update = 15663105,
++    .tls_extension_order = NULL,
++    .tls_grease = true
 +  },
 +  {
 +    .target = "chrome107",
@@ -1621,181 +1637,191 @@ index 000000000..1b6eeb9e9
 +      "Accept-Language: en-US,en;q=0.9"
 +    },
 +    .http2_settings = "1:65536;2:0;3:1000;4:6291456;6:262144",
-+    .http2_window_update = 15663105
++    .http2_window_update = 15663105,
++    .tls_extension_order = NULL,
++    .tls_grease = true
 +  },
 +  {
-+      .target = "chrome110",
-+      .httpversion = CURL_HTTP_VERSION_2_0,
-+      .ssl_version = CURL_SSLVERSION_TLSv1_2 | CURL_SSLVERSION_MAX_DEFAULT,
-+      .ciphers =
-+      "TLS_AES_128_GCM_SHA256,"
-+      "TLS_AES_256_GCM_SHA384,"
-+      "TLS_CHACHA20_POLY1305_SHA256,"
-+      "ECDHE-ECDSA-AES128-GCM-SHA256,"
-+      "ECDHE-RSA-AES128-GCM-SHA256,"
-+      "ECDHE-ECDSA-AES256-GCM-SHA384,"
-+      "ECDHE-RSA-AES256-GCM-SHA384,"
-+      "ECDHE-ECDSA-CHACHA20-POLY1305,"
-+      "ECDHE-RSA-CHACHA20-POLY1305,"
-+      "ECDHE-RSA-AES128-SHA,"
-+      "ECDHE-RSA-AES256-SHA,"
-+      "AES128-GCM-SHA256,"
-+      "AES256-GCM-SHA384,"
-+      "AES128-SHA,"
-+      "AES256-SHA",
-+      .npn = false,
-+      .alpn = true,
-+      .alps = true,
-+      .tls_permute_extensions = true,
-+      .tls_session_ticket = true,
-+      .cert_compression = "brotli",
-+      .http_headers = {
-+              "sec-ch-ua: \"Chromium\";v=\"110\", \"Not A(Brand\";v=\"24\", \"Google Chrome\";v=\"110\"",
-+              "sec-ch-ua-mobile: ?0",
-+              "sec-ch-ua-platform: \"Windows\"",
-+              "Upgrade-Insecure-Requests: 1",
-+              "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",
-+              "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-+              "Sec-Fetch-Site: none",
-+              "Sec-Fetch-Mode: navigate",
-+              "Sec-Fetch-User: ?1",
-+              "Sec-Fetch-Dest: document",
-+              "Accept-Encoding: gzip, deflate, br",
-+              "Accept-Language: en-US,en;q=0.9"
-+      },
-+      .http2_settings = "1:65536;2:0;3:1000;4:6291456;6:262144",
-+      .http2_window_update = 15663105
++    .target = "chrome110",
++    .httpversion = CURL_HTTP_VERSION_2_0,
++    .ssl_version = CURL_SSLVERSION_TLSv1_2 | CURL_SSLVERSION_MAX_DEFAULT,
++    .ciphers =
++    "TLS_AES_128_GCM_SHA256,"
++    "TLS_AES_256_GCM_SHA384,"
++    "TLS_CHACHA20_POLY1305_SHA256,"
++    "ECDHE-ECDSA-AES128-GCM-SHA256,"
++    "ECDHE-RSA-AES128-GCM-SHA256,"
++    "ECDHE-ECDSA-AES256-GCM-SHA384,"
++    "ECDHE-RSA-AES256-GCM-SHA384,"
++    "ECDHE-ECDSA-CHACHA20-POLY1305,"
++    "ECDHE-RSA-CHACHA20-POLY1305,"
++    "ECDHE-RSA-AES128-SHA,"
++    "ECDHE-RSA-AES256-SHA,"
++    "AES128-GCM-SHA256,"
++    "AES256-GCM-SHA384,"
++    "AES128-SHA,"
++    "AES256-SHA",
++    .npn = false,
++    .alpn = true,
++    .alps = true,
++    .tls_permute_extensions = true,
++    .tls_session_ticket = true,
++    .cert_compression = "brotli",
++    .http_headers = {
++            "sec-ch-ua: \"Chromium\";v=\"110\", \"Not A(Brand\";v=\"24\", \"Google Chrome\";v=\"110\"",
++            "sec-ch-ua-mobile: ?0",
++            "sec-ch-ua-platform: \"Windows\"",
++            "Upgrade-Insecure-Requests: 1",
++            "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",
++            "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
++            "Sec-Fetch-Site: none",
++            "Sec-Fetch-Mode: navigate",
++            "Sec-Fetch-User: ?1",
++            "Sec-Fetch-Dest: document",
++            "Accept-Encoding: gzip, deflate, br",
++            "Accept-Language: en-US,en;q=0.9"
++    },
++    .http2_settings = "1:65536;2:0;3:1000;4:6291456;6:262144",
++    .http2_window_update = 15663105,
++    .tls_extension_order = NULL,
++    .tls_grease = true
 +  },
 +  {
-+      .target = "chrome116",
-+      .httpversion = CURL_HTTP_VERSION_2_0,
-+      .ssl_version = CURL_SSLVERSION_TLSv1_2 | CURL_SSLVERSION_MAX_DEFAULT,
-+      .ciphers =
-+      "TLS_AES_128_GCM_SHA256,"
-+      "TLS_AES_256_GCM_SHA384,"
-+      "TLS_CHACHA20_POLY1305_SHA256,"
-+      "ECDHE-ECDSA-AES128-GCM-SHA256,"
-+      "ECDHE-RSA-AES128-GCM-SHA256,"
-+      "ECDHE-ECDSA-AES256-GCM-SHA384,"
-+      "ECDHE-RSA-AES256-GCM-SHA384,"
-+      "ECDHE-ECDSA-CHACHA20-POLY1305,"
-+      "ECDHE-RSA-CHACHA20-POLY1305,"
-+      "ECDHE-RSA-AES128-SHA,"
-+      "ECDHE-RSA-AES256-SHA,"
-+      "AES128-GCM-SHA256,"
-+      "AES256-GCM-SHA384,"
-+      "AES128-SHA,"
-+      "AES256-SHA",
-+      .npn = false,
-+      .alpn = true,
-+      .alps = true,
-+      .tls_permute_extensions = true,
-+      .tls_session_ticket = true,
-+      .cert_compression = "brotli",
-+      .http_headers = {
-+              "sec-ch-ua: \"Chromium\";v=\"116\", \"Not)A;Brand\";v=\"24\", \"Google Chrome\";v=\"116\"",
-+              "sec-ch-ua-mobile: ?0",
-+              "sec-ch-ua-platform: \"Windows\"",
-+              "Upgrade-Insecure-Requests: 1",
-+              "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
-+              "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-+              "Sec-Fetch-Site: none",
-+              "Sec-Fetch-Mode: navigate",
-+              "Sec-Fetch-User: ?1",
-+              "Sec-Fetch-Dest: document",
-+              "Accept-Encoding: gzip, deflate, br",
-+              "Accept-Language: en-US,en;q=0.9"
-+      },
-+      .http2_settings = "1:65536;2:0;3:1000;4:6291456;6:262144",
-+      .http2_window_update = 15663105
++    .target = "chrome116",
++    .httpversion = CURL_HTTP_VERSION_2_0,
++    .ssl_version = CURL_SSLVERSION_TLSv1_2 | CURL_SSLVERSION_MAX_DEFAULT,
++    .ciphers =
++    "TLS_AES_128_GCM_SHA256,"
++    "TLS_AES_256_GCM_SHA384,"
++    "TLS_CHACHA20_POLY1305_SHA256,"
++    "ECDHE-ECDSA-AES128-GCM-SHA256,"
++    "ECDHE-RSA-AES128-GCM-SHA256,"
++    "ECDHE-ECDSA-AES256-GCM-SHA384,"
++    "ECDHE-RSA-AES256-GCM-SHA384,"
++    "ECDHE-ECDSA-CHACHA20-POLY1305,"
++    "ECDHE-RSA-CHACHA20-POLY1305,"
++    "ECDHE-RSA-AES128-SHA,"
++    "ECDHE-RSA-AES256-SHA,"
++    "AES128-GCM-SHA256,"
++    "AES256-GCM-SHA384,"
++    "AES128-SHA,"
++    "AES256-SHA",
++    .npn = false,
++    .alpn = true,
++    .alps = true,
++    .tls_permute_extensions = true,
++    .tls_session_ticket = true,
++    .cert_compression = "brotli",
++    .http_headers = {
++            "sec-ch-ua: \"Chromium\";v=\"116\", \"Not)A;Brand\";v=\"24\", \"Google Chrome\";v=\"116\"",
++            "sec-ch-ua-mobile: ?0",
++            "sec-ch-ua-platform: \"Windows\"",
++            "Upgrade-Insecure-Requests: 1",
++            "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
++            "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
++            "Sec-Fetch-Site: none",
++            "Sec-Fetch-Mode: navigate",
++            "Sec-Fetch-User: ?1",
++            "Sec-Fetch-Dest: document",
++            "Accept-Encoding: gzip, deflate, br",
++            "Accept-Language: en-US,en;q=0.9"
++    },
++    .http2_settings = "1:65536;2:0;3:1000;4:6291456;6:262144",
++    .http2_window_update = 15663105,
++    .tls_extension_order = NULL,
++    .tls_grease = true
 +  },
 +  {
-+      .target = "chrome119",
-+      .httpversion = CURL_HTTP_VERSION_2_0,
-+      .ssl_version = CURL_SSLVERSION_TLSv1_2 | CURL_SSLVERSION_MAX_DEFAULT,
-+      .ciphers =
-+      "TLS_AES_128_GCM_SHA256,"
-+      "TLS_AES_256_GCM_SHA384,"
-+      "TLS_CHACHA20_POLY1305_SHA256,"
-+      "ECDHE-ECDSA-AES128-GCM-SHA256,"
-+      "ECDHE-RSA-AES128-GCM-SHA256,"
-+      "ECDHE-ECDSA-AES256-GCM-SHA384,"
-+      "ECDHE-RSA-AES256-GCM-SHA384,"
-+      "ECDHE-ECDSA-CHACHA20-POLY1305,"
-+      "ECDHE-RSA-CHACHA20-POLY1305,"
-+      "ECDHE-RSA-AES128-SHA,"
-+      "ECDHE-RSA-AES256-SHA,"
-+      "AES128-GCM-SHA256,"
-+      "AES256-GCM-SHA384,"
-+      "AES128-SHA,"
-+      "AES256-SHA",
-+      .npn = false,
-+      .alpn = true,
-+      .alps = true,
-+      .tls_permute_extensions = true,
-+      .tls_session_ticket = true,
-+      .cert_compression = "brotli",
-+      .http_headers = {
-+              "sec-ch-ua: \"Google Chrome\";v=\"119\", \"Chromium\";v=\"119\", \"Not?A_Brand\";v=\"24\"",
-+              "sec-ch-ua-mobile: ?0",
-+              "sec-ch-ua-platform: \"macOS\"",
-+              "Upgrade-Insecure-Requests: 1",
-+              "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-+              "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-+              "Sec-Fetch-Site: none",
-+              "Sec-Fetch-Mode: navigate",
-+              "Sec-Fetch-User: ?1",
-+              "Sec-Fetch-Dest: document",
-+              "Accept-Encoding: gzip, deflate, br",
-+              "Accept-Language: en-US,en;q=0.9"
-+      },
-+      .http2_settings = "1:65536;2:0;4:6291456;6:262144",
-+      .http2_window_update = 15663105,
-+      .ech = "GREASE"
++    .target = "chrome119",
++    .httpversion = CURL_HTTP_VERSION_2_0,
++    .ssl_version = CURL_SSLVERSION_TLSv1_2 | CURL_SSLVERSION_MAX_DEFAULT,
++    .ciphers =
++    "TLS_AES_128_GCM_SHA256,"
++    "TLS_AES_256_GCM_SHA384,"
++    "TLS_CHACHA20_POLY1305_SHA256,"
++    "ECDHE-ECDSA-AES128-GCM-SHA256,"
++    "ECDHE-RSA-AES128-GCM-SHA256,"
++    "ECDHE-ECDSA-AES256-GCM-SHA384,"
++    "ECDHE-RSA-AES256-GCM-SHA384,"
++    "ECDHE-ECDSA-CHACHA20-POLY1305,"
++    "ECDHE-RSA-CHACHA20-POLY1305,"
++    "ECDHE-RSA-AES128-SHA,"
++    "ECDHE-RSA-AES256-SHA,"
++    "AES128-GCM-SHA256,"
++    "AES256-GCM-SHA384,"
++    "AES128-SHA,"
++    "AES256-SHA",
++    .npn = false,
++    .alpn = true,
++    .alps = true,
++    .tls_permute_extensions = true,
++    .tls_session_ticket = true,
++    .cert_compression = "brotli",
++    .http_headers = {
++            "sec-ch-ua: \"Google Chrome\";v=\"119\", \"Chromium\";v=\"119\", \"Not?A_Brand\";v=\"24\"",
++            "sec-ch-ua-mobile: ?0",
++            "sec-ch-ua-platform: \"macOS\"",
++            "Upgrade-Insecure-Requests: 1",
++            "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
++            "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
++            "Sec-Fetch-Site: none",
++            "Sec-Fetch-Mode: navigate",
++            "Sec-Fetch-User: ?1",
++            "Sec-Fetch-Dest: document",
++            "Accept-Encoding: gzip, deflate, br",
++            "Accept-Language: en-US,en;q=0.9"
++    },
++    .http2_settings = "1:65536;2:0;4:6291456;6:262144",
++    .http2_window_update = 15663105,
++    .ech = "GREASE",
++    .tls_extension_order = NULL,
++    .tls_grease = true
 +  },
 +  {
-+      .target = "chrome120",
-+      .httpversion = CURL_HTTP_VERSION_2_0,
-+      .ssl_version = CURL_SSLVERSION_TLSv1_2 | CURL_SSLVERSION_MAX_DEFAULT,
-+      .ciphers =
-+      "TLS_AES_128_GCM_SHA256,"
-+      "TLS_AES_256_GCM_SHA384,"
-+      "TLS_CHACHA20_POLY1305_SHA256,"
-+      "ECDHE-ECDSA-AES128-GCM-SHA256,"
-+      "ECDHE-RSA-AES128-GCM-SHA256,"
-+      "ECDHE-ECDSA-AES256-GCM-SHA384,"
-+      "ECDHE-RSA-AES256-GCM-SHA384,"
-+      "ECDHE-ECDSA-CHACHA20-POLY1305,"
-+      "ECDHE-RSA-CHACHA20-POLY1305,"
-+      "ECDHE-RSA-AES128-SHA,"
-+      "ECDHE-RSA-AES256-SHA,"
-+      "AES128-GCM-SHA256,"
-+      "AES256-GCM-SHA384,"
-+      "AES128-SHA,"
-+      "AES256-SHA",
-+      .npn = false,
-+      .alpn = true,
-+      .alps = true,
-+      .tls_permute_extensions = true,
-+      .tls_session_ticket = true,
-+      .cert_compression = "brotli",
-+      .http_headers = {
-+              "sec-ch-ua: \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Google Chrome\";v=\"120\"",
-+              "sec-ch-ua-mobile: ?0",
-+              "sec-ch-ua-platform: \"macOS\"",
-+              "Upgrade-Insecure-Requests: 1",
-+              "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-+              "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-+              "Sec-Fetch-Site: none",
-+              "Sec-Fetch-Mode: navigate",
-+              "Sec-Fetch-User: ?1",
-+              "Sec-Fetch-Dest: document",
-+              "Accept-Encoding: gzip, deflate, br",
-+              "Accept-Language: en-US,en;q=0.9"
-+      },
-+      .http2_settings = "1:65536;2:0;4:6291456;6:262144",
-+      .http2_window_update = 15663105,
-+      .ech = "GREASE"
++    .target = "chrome120",
++    .httpversion = CURL_HTTP_VERSION_2_0,
++    .ssl_version = CURL_SSLVERSION_TLSv1_2 | CURL_SSLVERSION_MAX_DEFAULT,
++    .ciphers =
++    "TLS_AES_128_GCM_SHA256,"
++    "TLS_AES_256_GCM_SHA384,"
++    "TLS_CHACHA20_POLY1305_SHA256,"
++    "ECDHE-ECDSA-AES128-GCM-SHA256,"
++    "ECDHE-RSA-AES128-GCM-SHA256,"
++    "ECDHE-ECDSA-AES256-GCM-SHA384,"
++    "ECDHE-RSA-AES256-GCM-SHA384,"
++    "ECDHE-ECDSA-CHACHA20-POLY1305,"
++    "ECDHE-RSA-CHACHA20-POLY1305,"
++    "ECDHE-RSA-AES128-SHA,"
++    "ECDHE-RSA-AES256-SHA,"
++    "AES128-GCM-SHA256,"
++    "AES256-GCM-SHA384,"
++    "AES128-SHA,"
++    "AES256-SHA",
++    .npn = false,
++    .alpn = true,
++    .alps = true,
++    .tls_permute_extensions = true,
++    .tls_session_ticket = true,
++    .cert_compression = "brotli",
++    .http_headers = {
++            "sec-ch-ua: \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Google Chrome\";v=\"120\"",
++            "sec-ch-ua-mobile: ?0",
++            "sec-ch-ua-platform: \"macOS\"",
++            "Upgrade-Insecure-Requests: 1",
++            "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
++            "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
++            "Sec-Fetch-Site: none",
++            "Sec-Fetch-Mode: navigate",
++            "Sec-Fetch-User: ?1",
++            "Sec-Fetch-Dest: document",
++            "Accept-Encoding: gzip, deflate, br",
++            "Accept-Language: en-US,en;q=0.9"
++    },
++    .http2_settings = "1:65536;2:0;4:6291456;6:262144",
++    .http2_window_update = 15663105,
++    .ech = "GREASE",
++    .tls_extension_order = NULL,
++    .tls_grease = true
 +  },
 +  {
 +    .target = "chrome99_android",
@@ -1837,7 +1863,9 @@ index 000000000..1b6eeb9e9
 +      "Accept-Language: en-US,en;q=0.9"
 +    },
 +    .http2_settings = "1:65536;3:1000;4:6291456;6:262144",
-+    .http2_window_update = 15663105
++    .http2_window_update = 15663105,
++    .tls_extension_order = NULL,
++    .tls_grease = true
 +  },
 +  {
 +    .target = "edge99",
@@ -1879,7 +1907,9 @@ index 000000000..1b6eeb9e9
 +      "Accept-Language: en-US,en;q=0.9"
 +    },
 +    .http2_settings = "1:65536;3:1000;4:6291456;6:262144",
-+    .http2_window_update = 15663105
++    .http2_window_update = 15663105,
++    .tls_extension_order = NULL,
++    .tls_grease = true
 +  },
 +  {
 +    .target = "edge101",
@@ -1921,7 +1951,9 @@ index 000000000..1b6eeb9e9
 +      "Accept-Language: en-US,en;q=0.9"
 +    },
 +    .http2_settings = "1:65536;3:1000;4:6291456;6:262144",
-+    .http2_window_update = 15663105
++    .http2_window_update = 15663105,
++    .tls_extension_order = NULL,
++    .tls_grease = true
 +  },
 +  {
 +    .target = "safari15_3",
@@ -1979,7 +2011,9 @@ index 000000000..1b6eeb9e9
 +    },
 +    .http2_settings = "4:4194304;3:100",
 +    .http2_window_update = 10485760,
-+    .http2_pseudo_headers_order = "mspa"
++    .http2_pseudo_headers_order = "mspa",
++    .tls_extension_order = NULL,
++    .tls_grease = true
 +  },
 +  {
 +    .target = "safari15_5",
@@ -2032,7 +2066,9 @@ index 000000000..1b6eeb9e9
 +    },
 +    .http2_settings = "4:4194304;3:100",
 +    .http2_window_update = 10485760,
-+    .http2_pseudo_headers_order = "mspa"
++    .http2_pseudo_headers_order = "mspa",
++    .tls_extension_order = NULL,
++    .tls_grease = true
 +  },
 +  {
 +    .target = "safari17_2_ios",
@@ -2088,7 +2124,9 @@ index 000000000..1b6eeb9e9
 +    },
 +    .http2_settings = "2:0;4:2097152;3:100",
 +    .http2_window_update = 10485760,
-+    .http2_pseudo_headers_order = "mspa"
++    .http2_pseudo_headers_order = "mspa",
++    .tls_extension_order = NULL,
++    .tls_grease = true
 +  },
 +  {
 +    .target = "safari17_0",
@@ -2144,7 +2182,9 @@ index 000000000..1b6eeb9e9
 +    },
 +    .http2_settings = "2:0;4:4194304;3:100",
 +    .http2_window_update = 10485760,
-+    .http2_pseudo_headers_order = "mspa"
++    .http2_pseudo_headers_order = "mspa",
++    .tls_extension_order = NULL,
++    .tls_grease = true
 +  },
 +  {
 +    .target = "firefox120",
@@ -2183,7 +2223,9 @@ index 000000000..1b6eeb9e9
 +    .http2_settings = "1:65536;4:131072;5:16384",
 +    .http2_window_update = 12517377,
 +    .http2_pseudo_headers_order = "mpas",
-+    .http2_streams = "3:0:0:201,5:0:0:101,7:0:0:1,9:0:7:1,11:0:3:1,13:0:0:241"
++    .http2_streams = "3:0:0:201,5:0:0:101,7:0:0:1,9:0:7:1,11:0:3:1,13:0:0:241",
++    .tls_extension_order = NULL,
++    .tls_grease = true
 +  },
 +  {
 +    /* Last one must be NULL. */
@@ -2192,10 +2234,10 @@ index 000000000..1b6eeb9e9
 +};
 diff --git a/lib/impersonate.h b/lib/impersonate.h
 new file mode 100644
-index 000000000..e0e92fc3c
+index 000000000..a9e1e4b45
 --- /dev/null
 +++ b/lib/impersonate.h
-@@ -0,0 +1,48 @@
+@@ -0,0 +1,50 @@
 +#ifndef HEADER_CURL_IMPERSONATE_H
 +#define HEADER_CURL_IMPERSONATE_H
 +
@@ -2233,6 +2275,8 @@ index 000000000..e0e92fc3c
 +  const char *http2_streams;
 +  bool tls_permute_extensions;
 +  const char *ech;
++  const char *tls_extension_order;
++  bool tls_grease;
 +  /* Other TLS options will come here in the future once they are
 +   * configurable through curl_easy_setopt() */
 +};
@@ -2558,7 +2602,7 @@ index ff661482e..dc95784b0 100644
  
  struct Names {
 diff --git a/lib/vtls/openssl.c b/lib/vtls/openssl.c
-index 8c8f43e83..1c5566738 100644
+index 8c8f43e83..e6c749315 100644
 --- a/lib/vtls/openssl.c
 +++ b/lib/vtls/openssl.c
 @@ -79,9 +79,24 @@
@@ -2868,7 +2912,7 @@ index 8c8f43e83..1c5566738 100644
  #endif
  
  #ifdef SSL_OP_NO_COMPRESSION
-@@ -3638,6 +3912,16 @@ static CURLcode ossl_connect_step1(struct Curl_cfilter *cf,
+@@ -3638,6 +3912,18 @@ static CURLcode ossl_connect_step1(struct Curl_cfilter *cf,
    }
  #endif
  
@@ -2877,15 +2921,17 @@ index 8c8f43e83..1c5566738 100644
 +  SSL_CTX_set_mode(backend->ctx,
 +      SSL_MODE_CBC_RECORD_SPLITTING | SSL_MODE_ENABLE_FALSE_START);
 + 
-+  /* curl-impersonate: Enable TLS extensions 5 - status_request and
-+   * 18 - signed_certificate_timestamp. */
++  /* curl-impersonate: Enable TLS extensions 18 - signed_certificate_timestamp. */
++  // XXX: Firefox does not enable this
 +  SSL_CTX_enable_signed_cert_timestamps(backend->ctx);
++
++  /* curl-impersonate: Enable TLS extensions 5 - status_request */
 +  SSL_CTX_enable_ocsp_stapling(backend->ctx);
 +
    if(ssl_cert || ssl_cert_blob || ssl_cert_type) {
      if(!result &&
         !cert_stuff(data, backend->ctx,
-@@ -3691,6 +3975,35 @@ static CURLcode ossl_connect_step1(struct Curl_cfilter *cf,
+@@ -3691,6 +3977,35 @@ static CURLcode ossl_connect_step1(struct Curl_cfilter *cf,
    }
  #endif
  
@@ -2921,7 +2967,7 @@ index 8c8f43e83..1c5566738 100644
  #ifdef USE_OPENSSL_SRP
    if(ssl_config->primary.username && Curl_auth_allowed_to_host(data)) {
      char * const ssl_username = ssl_config->primary.username;
-@@ -3716,6 +4029,30 @@ static CURLcode ossl_connect_step1(struct Curl_cfilter *cf,
+@@ -3716,6 +4031,37 @@ static CURLcode ossl_connect_step1(struct Curl_cfilter *cf,
    }
  #endif
  
@@ -2931,8 +2977,10 @@ index 8c8f43e83..1c5566738 100644
 +   * and SSLClientSocketImpl::Init()
 +   * in the Chromium's source code. */
 +
-+  /* Enable TLS GREASE. */
-+  SSL_CTX_set_grease_enabled(backend->ctx, 1);
++  /* curl-impersonate: Enable TLS GREASE. */
++  if(data->set.tls_grease) {
++    SSL_CTX_set_grease_enabled(backend->ctx, 1);
++  }
 +
 +  /*
 +   * curl-impersonate: Enable TLS extension permutation, enabled by default
@@ -2940,6 +2988,11 @@ index 8c8f43e83..1c5566738 100644
 +   */
 +  if(data->set.ssl_permute_extensions) {
 +    SSL_CTX_set_permute_extensions(backend->ctx, 1);
++  }
++
++  /* curl-impersonate: Set TLS extensions order. */
++  if(data->set.tls_extension_order) {
++    SSL_CTX_set_grease_enabled(backend->ctx, data->);
 +  }
 +
 +  if(conn_config->cert_compression &&
@@ -2952,7 +3005,7 @@ index 8c8f43e83..1c5566738 100644
    /* OpenSSL always tries to verify the peer, this only says whether it should
     * fail to connect if the verification fails, or if it should continue
     * anyway. In the latter case the result of the verification is checked with
-@@ -3771,6 +4108,23 @@ static CURLcode ossl_connect_step1(struct Curl_cfilter *cf,
+@@ -3771,6 +4117,24 @@ static CURLcode ossl_connect_step1(struct Curl_cfilter *cf,
  
    SSL_set_app_data(backend->handle, cf);
  
@@ -2963,6 +3016,7 @@ index 8c8f43e83..1c5566738 100644
 +
 +    for(i = 0; i < connssl->alps->count; ++i) {
 +      /* curl-impersonate: Add the ALPS extension (17513) like Chrome does. */
++      // XXX: Firefox does not enable this.
 +      SSL_add_application_settings(backend->handle, connssl->alps->entries[i],
 +                                   strlen(connssl->alps->entries[i]), NULL,
 +                                   0);
@@ -2976,7 +3030,7 @@ index 8c8f43e83..1c5566738 100644
  #if (OPENSSL_VERSION_NUMBER >= 0x0090808fL) && !defined(OPENSSL_NO_TLSEXT) && \
    !defined(OPENSSL_NO_OCSP)
    if(conn_config->verifystatus)
-@@ -3794,6 +4148,21 @@ static CURLcode ossl_connect_step1(struct Curl_cfilter *cf,
+@@ -3794,6 +4158,21 @@ static CURLcode ossl_connect_step1(struct Curl_cfilter *cf,
    }
  #endif
  
@@ -2998,7 +3052,7 @@ index 8c8f43e83..1c5566738 100644
    SSL_set_app_data(backend->handle, cf);
  
    connssl->reused_session = FALSE;
-@@ -4005,6 +4374,60 @@ static CURLcode ossl_connect_step2(struct Curl_cfilter *cf,
+@@ -4005,6 +4384,60 @@ static CURLcode ossl_connect_step2(struct Curl_cfilter *cf,
            negotiated_group_name? negotiated_group_name : "[blank]",
            OBJ_nid2sn(psigtype_nid));
  
@@ -3347,10 +3401,25 @@ index dced53e0f..dee8a2fc3 100644
  
  # if unit tests are enabled, build a static library to link them with
 diff --git a/src/tool_cfgable.c b/src/tool_cfgable.c
-index 906e23e14..3a492996b 100644
+index 906e23e14..7d42e487b 100644
 --- a/src/tool_cfgable.c
 +++ b/src/tool_cfgable.c
-@@ -175,6 +175,14 @@ static void free_config_fields(struct OperationConfig *config)
+@@ -95,6 +95,14 @@ static void free_config_fields(struct OperationConfig *config)
+   Curl_safefree(config->proto_str);
+   Curl_safefree(config->proto_redir_str);
+ 
++  // Impersonate
++  Curl_safefree(config->ssl_sig_hash_algs);
++  Curl_safefree(config->ssl_cert_compression);
++  Curl_safefree(config->http2_pseudo_headers_order);
++  Curl_safefree(config->http2_settings);
++  Curl_safefree(config->http2_streams);
++  // End Impersonate
++  
+   urlnode = config->url_list;
+   while(urlnode) {
+     struct getout *next = urlnode->next;
+@@ -175,6 +183,14 @@ static void free_config_fields(struct OperationConfig *config)
    Curl_safefree(config->aws_sigv4);
    Curl_safefree(config->proto_str);
    Curl_safefree(config->proto_redir_str);

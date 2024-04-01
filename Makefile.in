@@ -65,55 +65,6 @@ help: ## Show this help message
 .PHONY: help
 .DEFAULT_GOAL := help
 
-firefox-build: $(CURL_VERSION)/.firefox ## Build the Firefox version of curl-impersonate
-	cd $(CURL_VERSION)
-	# Don't pass this Makefile's MAKEFLAGS
-	$(MAKE) MAKEFLAGS=-j$(SUBJOBS)
-.PHONY: firefox-build
-
-firefox-checkbuild: ## Run basic checks on the built binary
-ifeq ($(host),$(build))
-	cd $(CURL_VERSION)
-	# Make sure all needed features were compiled in
-	./src/curl-impersonate-ff -V | grep -q zlib
-	./src/curl-impersonate-ff -V | grep -q brotli
-	./src/curl-impersonate-ff -V | grep -q nghttp2
-	./src/curl-impersonate-ff -V | grep -q NSS
-	$(info Build OK)
-else
-	$(info Cross compiling, skipping checkbuild)
-endif
-.PHONY: firefox-checkbuild
-
-firefox-install: ## Install the Firefox version of curl-impersonate after build
-	cd $(CURL_VERSION)
-	$(MAKE) install-exec MAKEFLAGS=
-	# Wrapper scripts for the Firefox version (e.g. 'curl_ff98')
-	install $(srcdir)/firefox/curl_ff* @bindir@
-.PHONY: firefox-install
-
-firefox-install-strip: ## Like 'firefox-install', but strip binaries for smaller size
-	cd $(CURL_VERSION)
-	$(MAKE) install-exec MAKEFLAGS=
-	# We could have used 'install-strip' but then the docs would be installed as well.
-	# Instead strip manually.
-	$(STRIP) @bindir@/curl-impersonate-ff
-	# Wrapper scripts for the Firefox version (e.g. 'curl_ff98')
-	install $(srcdir)/firefox/curl_ff* @bindir@
-.PHONY: firefox-install-strip
-
-firefox-uninstall: ## Uninstall the Firefox version of curl-impersonate after 'make install'
-	cd $(CURL_VERSION)
-	$(MAKE) uninstall MAKEFLAGS=
-	rm -Rf @bindir@/curl_ff*
-.PHONY: firefox-uninstall
-
-firefox-clean: ## Clean build artifacts of the Firefox version. Use after re-running './configure'
-	cd $(CURL_VERSION)
-	$(MAKE) clean MAKEFLAGS=
-	rm -f .firefox
-.PHONY: firefox-clean
-
 chrome-build: $(CURL_VERSION)/.chrome ## Build the Chrome version of curl-impersonate
 	cd $(CURL_VERSION)
 	# Don't pass this Makefile's MAKEFLAGS
