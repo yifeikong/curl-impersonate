@@ -155,7 +155,7 @@ index 000000000..34b44cd2a
 +git df curl-8_5_0 > chrome.patch
 +mv chrome.patch ../curl-impersonate/chrome/patches/curl-impersonate.patch
 diff --git a/include/curl/curl.h b/include/curl/curl.h
-index cc24c0506..29339db77 100644
+index cc24c0506..9cba4dd14 100644
 --- a/include/curl/curl.h
 +++ b/include/curl/curl.h
 @@ -631,6 +631,7 @@ typedef enum {
@@ -166,7 +166,7 @@ index cc24c0506..29339db77 100644
    CURL_LAST /* never use! */
  } CURLcode;
  
-@@ -2201,6 +2202,65 @@ typedef enum {
+@@ -2201,6 +2202,77 @@ typedef enum {
    /* set a specific client IP for HAProxy PROXY protocol header? */
    CURLOPT(CURLOPT_HAPROXY_CLIENT_IP, CURLOPTTYPE_STRINGPOINT, 323),
  
@@ -220,7 +220,9 @@ index cc24c0506..29339db77 100644
 +   */
 +  CURLOPT(CURLOPT_HTTP2_WINDOW_UPDATE, CURLOPTTYPE_LONG, 332),
 +
-+  /* set ECH configuration, XXX, the official one is 324  */
++  /* curl-impersonate:
++   * set ECH configuration, XXX, the official one is 324
++   */
 +  CURLOPT(CURLOPT_ECH, CURLOPTTYPE_STRINGPOINT, 333),
 +
 +  /*
@@ -228,6 +230,16 @@ index cc24c0506..29339db77 100644
 +   * Set the initial streams settings for http2.
 +   */
 +  CURLOPT(CURLOPT_HTTP2_STREAMS, CURLOPTTYPE_STRINGPOINT, 334),
++
++  /* curl-impersonate:
++   * enable tls grease
++   */
++  CURLOPT(CURLOPT_TLS_GREASE, CURLOPTTYPE_LONG, 335),
++
++  /* curl-impersonate:
++   * set tls extension order
++   */
++  CURLOPT(CURLOPT_TLS_EXTENSION_ORDER, CURLOPTTYPE_STRINGPOINT, 336),
 +
    CURLOPT_LASTENTRY /* the last unused */
  } CURLoption;
@@ -724,7 +736,7 @@ index 322d1a41b..e201fbc43 100644
  
  /*
 diff --git a/lib/easyoptions.c b/lib/easyoptions.c
-index e69c658b0..aa848d66b 100644
+index e69c658b0..027dd6f93 100644
 --- a/lib/easyoptions.c
 +++ b/lib/easyoptions.c
 @@ -86,6 +86,7 @@ struct curl_easyoption Curl_easyopts[] = {
@@ -774,7 +786,16 @@ index e69c658b0..aa848d66b 100644
    {"STDERR", CURLOPT_STDERR, CURLOT_OBJECT, 0},
    {"STREAM_DEPENDS", CURLOPT_STREAM_DEPENDS, CURLOT_OBJECT, 0},
    {"STREAM_DEPENDS_E", CURLOPT_STREAM_DEPENDS_E, CURLOT_OBJECT, 0},
-@@ -373,6 +385,6 @@ struct curl_easyoption Curl_easyopts[] = {
+@@ -340,6 +352,8 @@ struct curl_easyoption Curl_easyopts[] = {
+   {"TLSAUTH_PASSWORD", CURLOPT_TLSAUTH_PASSWORD, CURLOT_STRING, 0},
+   {"TLSAUTH_TYPE", CURLOPT_TLSAUTH_TYPE, CURLOT_STRING, 0},
+   {"TLSAUTH_USERNAME", CURLOPT_TLSAUTH_USERNAME, CURLOT_STRING, 0},
++  {"TLS_GREASE", CURLOPT_TLS_GREASE, CURLOT_LONG, 0},
++  {"TLS_EXTENSION_ORDER", CURLOPT_TLS_EXTENSION_ORDER, CURLOT_STRING, 0},
+   {"TRAILERDATA", CURLOPT_TRAILERDATA, CURLOT_CBPTR, 0},
+   {"TRAILERFUNCTION", CURLOPT_TRAILERFUNCTION, CURLOT_FUNCTION, 0},
+   {"TRANSFERTEXT", CURLOPT_TRANSFERTEXT, CURLOT_LONG, 0},
+@@ -373,6 +387,6 @@ struct curl_easyoption Curl_easyopts[] = {
   */
  int Curl_easyopts_check(void)
  {
@@ -1410,7 +1431,7 @@ index 80e183480..8ee390b7e 100644
   * Store nghttp2 version info in this buffer.
 diff --git a/lib/impersonate.c b/lib/impersonate.c
 new file mode 100644
-index 000000000..4a41daf7c
+index 000000000..f40d085ad
 --- /dev/null
 +++ b/lib/impersonate.c
 @@ -0,0 +1,818 @@
@@ -1462,8 +1483,8 @@ index 000000000..4a41daf7c
 +    },
 +    .http2_settings = "1:65536;3:1000;4:6291456;6:262144",
 +    .http2_window_update = 15663105,
-+    .extension_order = NULL,
-+    .ssl_grease = true
++    .tls_extension_order = NULL,
++    .tls_grease = true
 +  },
 +  {
 +    .target = "chrome100",
@@ -2303,7 +2324,7 @@ index 5456113be..85841f769 100644
  #ifdef USE_WINSOCK
    multi->wsa_event = WSACreateEvent();
 diff --git a/lib/setopt.c b/lib/setopt.c
-index a08140cce..f64a89f98 100644
+index a08140cce..05468ff49 100644
 --- a/lib/setopt.c
 +++ b/lib/setopt.c
 @@ -51,6 +51,7 @@
@@ -2366,7 +2387,7 @@ index a08140cce..f64a89f98 100644
  #endif
    case CURLOPT_IPRESOLVE:
      arg = va_arg(param, long);
-@@ -2936,6 +2975,35 @@ CURLcode Curl_vsetopt(struct Curl_easy *data, CURLoption option, va_list param)
+@@ -2936,6 +2975,42 @@ CURLcode Curl_vsetopt(struct Curl_easy *data, CURLoption option, va_list param)
    case CURLOPT_SSL_ENABLE_ALPN:
      data->set.ssl_enable_alpn = (0 != va_arg(param, long));
      break;
@@ -2378,6 +2399,13 @@ index a08140cce..f64a89f98 100644
 +    break;
 +  case CURLOPT_SSL_PERMUTE_EXTENSIONS:
 +    data->set.ssl_permute_extensions = (0 != va_arg(param, long)) ? TRUE : FALSE;
++    break;
++  case CURLOPT_TLS_GREASE:
++    data->set.tls_grease = (0 != va_arg(param, long)) ? TRUE : FALSE;
++    break;
++  case CURLOPT_TLS_EXTENSION_ORDER:
++    result = Curl_setstropt(&data->set.str[STRING_TLS_EXTENSION_ORDER],
++                            va_arg(param, char *));
 +    break;
 +#ifdef USE_HTTP2
 +  case CURLOPT_HTTP2_PSEUDO_HEADERS_ORDER:
@@ -2402,7 +2430,7 @@ index a08140cce..f64a89f98 100644
  #ifdef USE_UNIX_SOCKETS
    case CURLOPT_UNIX_SOCKET_PATH:
      data->set.abstract_unix_socket = FALSE;
-@@ -3128,6 +3196,31 @@ CURLcode Curl_vsetopt(struct Curl_easy *data, CURLoption option, va_list param)
+@@ -3128,6 +3203,31 @@ CURLcode Curl_vsetopt(struct Curl_easy *data, CURLoption option, va_list param)
      data->set.ws_raw_mode = raw;
      break;
    }
@@ -2508,7 +2536,7 @@ index b81785fe2..699e8037a 100644
  
      if(waitpipe)
 diff --git a/lib/urldata.h b/lib/urldata.h
-index ff661482e..dc95784b0 100644
+index ff661482e..29b9d37fa 100644
 --- a/lib/urldata.h
 +++ b/lib/urldata.h
 @@ -53,6 +53,15 @@
@@ -2566,7 +2594,7 @@ index ff661482e..dc95784b0 100644
    /* Dynamically allocated strings, MUST be freed before this struct is
       killed. */
    struct dynamically_allocated_data {
-@@ -1628,6 +1655,13 @@ enum dupstring {
+@@ -1628,6 +1655,14 @@ enum dupstring {
    STRING_SSL_EC_CURVES,
    STRING_AWS_SIGV4, /* Parameters for V4 signature */
    STRING_HAPROXY_CLIENT_IP,     /* CURLOPT_HAPROXY_CLIENT_IP */
@@ -2577,10 +2605,11 @@ index ff661482e..dc95784b0 100644
 +  STRING_HTTP2_STREAMS,
 +  STRING_ECH_CONFIG,            /* CURLOPT_ECH_CONFIG */
 +  STRING_ECH_PUBLIC,            /* CURLOPT_ECH_PUBLIC */
++  STRING_TLS_EXTENSION_ORDER,
  
    /* -- end of null-terminated strings -- */
  
-@@ -1921,6 +1955,9 @@ struct UserDefined {
+@@ -1921,6 +1956,9 @@ struct UserDefined {
    BIT(tcp_keepalive);  /* use TCP keepalives */
    BIT(tcp_fastopen);   /* use TCP Fast Open */
    BIT(ssl_enable_alpn);/* TLS ALPN extension? */
@@ -2590,7 +2619,7 @@ index ff661482e..dc95784b0 100644
    BIT(path_as_is);     /* allow dotdots? */
    BIT(pipewait);       /* wait for multiplex status before starting a new
                            connection */
-@@ -1941,6 +1978,10 @@ struct UserDefined {
+@@ -1941,6 +1979,11 @@ struct UserDefined {
  #ifdef USE_WEBSOCKETS
    BIT(ws_raw_mode);
  #endif
@@ -2598,11 +2627,12 @@ index ff661482e..dc95784b0 100644
 +  int tls_ech;      /* TLS ECH configuration  */
 +#endif
 +  int http2_window_update;
++  BIT(tls_grease);
  };
  
  struct Names {
 diff --git a/lib/vtls/openssl.c b/lib/vtls/openssl.c
-index 8c8f43e83..e6c749315 100644
+index 8c8f43e83..2ded499c4 100644
 --- a/lib/vtls/openssl.c
 +++ b/lib/vtls/openssl.c
 @@ -79,9 +79,24 @@
@@ -2991,8 +3021,8 @@ index 8c8f43e83..e6c749315 100644
 +  }
 +
 +  /* curl-impersonate: Set TLS extensions order. */
-+  if(data->set.tls_extension_order) {
-+    SSL_CTX_set_grease_enabled(backend->ctx, data->);
++  if(data->set.str[STRING_TLS_EXTENSION_ORDER]) {
++    SSL_CTX_set_extension_order(backend->ctx, data->set.str[STRING_TLS_EXTENSION_ORDER]);
 +  }
 +
 +  if(conn_config->cert_compression &&
@@ -3401,10 +3431,10 @@ index dced53e0f..dee8a2fc3 100644
  
  # if unit tests are enabled, build a static library to link them with
 diff --git a/src/tool_cfgable.c b/src/tool_cfgable.c
-index 906e23e14..7d42e487b 100644
+index 906e23e14..5c6613a93 100644
 --- a/src/tool_cfgable.c
 +++ b/src/tool_cfgable.c
-@@ -95,6 +95,14 @@ static void free_config_fields(struct OperationConfig *config)
+@@ -95,6 +95,15 @@ static void free_config_fields(struct OperationConfig *config)
    Curl_safefree(config->proto_str);
    Curl_safefree(config->proto_redir_str);
  
@@ -3414,12 +3444,13 @@ index 906e23e14..7d42e487b 100644
 +  Curl_safefree(config->http2_pseudo_headers_order);
 +  Curl_safefree(config->http2_settings);
 +  Curl_safefree(config->http2_streams);
++  Curl_safefree(config->tls_extension_order);
 +  // End Impersonate
 +  
    urlnode = config->url_list;
    while(urlnode) {
      struct getout *next = urlnode->next;
-@@ -175,6 +183,14 @@ static void free_config_fields(struct OperationConfig *config)
+@@ -175,6 +184,14 @@ static void free_config_fields(struct OperationConfig *config)
    Curl_safefree(config->aws_sigv4);
    Curl_safefree(config->proto_str);
    Curl_safefree(config->proto_redir_str);
@@ -3435,10 +3466,10 @@ index 906e23e14..7d42e487b 100644
  
  void config_free(struct OperationConfig *config)
 diff --git a/src/tool_cfgable.h b/src/tool_cfgable.h
-index 57e8fce52..ea51bff00 100644
+index 57e8fce52..b5d7019b1 100644
 --- a/src/tool_cfgable.h
 +++ b/src/tool_cfgable.h
-@@ -161,8 +161,14 @@ struct OperationConfig {
+@@ -161,8 +161,16 @@ struct OperationConfig {
    bool crlf;
    char *customrequest;
    char *ssl_ec_curves;
@@ -3450,10 +3481,12 @@ index 57e8fce52..ea51bff00 100644
 +  char *http2_settings;
 +  long http2_window_update;
 +  char *http2_streams;
++  bool tls_grease;
++  char *tls_extension_order;
    long httpversion;
    bool http09_allowed;
    bool nobuffer;
-@@ -192,6 +198,7 @@ struct OperationConfig {
+@@ -192,6 +200,7 @@ struct OperationConfig {
    struct curl_slist *prequote;
    long ssl_version;
    long ssl_version_max;
@@ -3461,7 +3494,7 @@ index 57e8fce52..ea51bff00 100644
    long proxy_ssl_version;
    long ip_version;
    long create_file_mode; /* CURLOPT_NEW_FILE_PERMS */
-@@ -268,6 +275,8 @@ struct OperationConfig {
+@@ -268,6 +277,8 @@ struct OperationConfig {
    bool proxy_ssl_auto_client_cert; /* proxy version of ssl_auto_client_cert */
    char *oauth_bearer;             /* OAuth 2.0 bearer token */
    bool noalpn;                    /* enable/disable TLS ALPN extension */
@@ -3470,7 +3503,7 @@ index 57e8fce52..ea51bff00 100644
    char *unix_socket_path;         /* path to Unix domain socket */
    bool abstract_unix_socket;      /* path to an abstract Unix domain socket */
    bool falsestart;
-@@ -298,6 +307,11 @@ struct OperationConfig {
+@@ -298,6 +309,11 @@ struct OperationConfig {
    struct State state;             /* for create_transfer() */
    bool rm_partial;                /* on error, remove partially written output
                                       files */

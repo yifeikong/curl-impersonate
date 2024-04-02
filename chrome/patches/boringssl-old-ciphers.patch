@@ -32,22 +32,8 @@ index e500dd76e..487945969 100644
  // SSL_set_permute_extensions configures whether sockets on |ssl| should
  // permute extensions. For now, this is only implemented for the ClientHello.
  OPENSSL_EXPORT void SSL_set_permute_extensions(SSL *ssl, int enabled);
-diff --git a/include/openssl/tls1.h b/include/openssl/tls1.h
-index c1207a3b7..2e25f767d 100644
---- a/include/openssl/tls1.h
-+++ b/include/openssl/tls1.h
-@@ -222,6 +222,9 @@ extern "C" {
- // ExtensionType value from RFC 8879
- #define TLSEXT_TYPE_cert_compression 27
- 
-+// ExtensionType value from RFC 8449
-+#define TLSEXT_TYPE_record_size_limit 28
-+
- // ExtensionType value from RFC 4507
- #define TLSEXT_TYPE_session_ticket 35
- 
 diff --git a/ssl/extensions.cc b/ssl/extensions.cc
-index b13400097..6f301deb1 100644
+index b13400097..6cd8bd750 100644
 --- a/ssl/extensions.cc
 +++ b/ssl/extensions.cc
 @@ -115,6 +115,7 @@
@@ -66,8 +52,8 @@ index b13400097..6f301deb1 100644
    for (size_t i = 0; i < kNumExtensions; i++) {
      permutation[i] = i;
    }
-@@ -3324,6 +3326,69 @@ bool ssl_setup_extension_permutation(SSL_HANDSHAKE *hs) {
-   return true;
+@@ -3337,6 +3339,44 @@ static const struct tls_extension *tls_extension_find(uint32_t *out_index,
+   return NULL;
  }
  
 +// curl-impersonate: set customized extension order
@@ -83,33 +69,6 @@ index b13400097..6f301deb1 100644
 +  if (hs->config->extension_order == nullptr) {
 +    return true;
 +  }
-+  static std::map<uint8_t, uint8_t> type2order = {
-+    {TLSEXT_TYPE_server_name, 0},
-+    {TLSEXT_TYPE_encrypted_client_hello, 1},
-+    {TLSEXT_TYPE_extended_master_secret, 2},
-+    {TLSEXT_TYPE_renegotiate, 3},
-+    {TLSEXT_TYPE_supported_groups, 4},
-+    {TLSEXT_TYPE_ec_point_formats, 5},
-+    {TLSEXT_TYPE_session_ticket, 6},
-+    {TLSEXT_TYPE_application_layer_protocol_negotiation, 7},
-+    {TLSEXT_TYPE_status_request, 8},
-+    {TLSEXT_TYPE_signature_algorithms, 9},
-+    {TLSEXT_TYPE_next_proto_neg, 10},
-+    {TLSEXT_TYPE_certificate_timestamp, 11},
-+    {TLSEXT_TYPE_channel_id, 12},
-+    {TLSEXT_TYPE_srtp, 13},
-+    {TLSEXT_TYPE_key_share, 14},
-+    {TLSEXT_TYPE_psk_key_exchange_modes, 15},
-+    {TLSEXT_TYPE_early_data, 16},
-+    {TLSEXT_TYPE_supported_versions, 17},
-+    {TLSEXT_TYPE_cookie, 18},
-+    {TLSEXT_TYPE_quic_transport_parameters, 19},
-+    {TLSEXT_TYPE_quic_transport_parameters_legacy, 20},
-+    {TLSEXT_TYPE_cert_compression, 21},
-+    {TLSEXT_TYPE_delegated_credential, 22},
-+    {TLSEXT_TYPE_application_settings, 23},
-+    {TLSEXT_TYPE_application_settings_old, 24}
-+  };
 +  Array<uint8_t> order;
 +  if (!order.Init(kNumExtensions)) {
 +    return false;
@@ -124,7 +83,9 @@ index b13400097..6f301deb1 100644
 +  char *ext = strtok(tmp, delimiter);
 +  size_t idx = 0;
 +  while (ext != nullptr) {
-+    order[idx] = type2order[atoi(ext)];
++    unsigned ext_index;
++    tls_extension_find(&ext_index, atoi(ext));
++    order[idx] = ext_index;
 +    ext = strtok(NULL, delimiter);
 +    idx++;
 +  }
@@ -133,28 +94,10 @@ index b13400097..6f301deb1 100644
 +  return true;
 +}
 +
- static const struct tls_extension *tls_extension_find(uint32_t *out_index,
-                                                       uint16_t value) {
-   unsigned i;
-@@ -3337,6 +3402,17 @@ static const struct tls_extension *tls_extension_find(uint32_t *out_index,
-   return NULL;
- }
- 
-+// static bool add_record_size_limit_extension(CBB *cbb, uint16_t ext, uint16_t limit) {
-+//   CBB child;
-+//   if (!CBB_add_u16(cbb, ext) ||
-+//       !CBB_add_u16_length_prefixed(cbb, &child) ||
-+//       !CBB_add_u16(&child, limit)) {
-+//     OPENSSL_PUT_ERROR(SSL, ERR_R_INTERNAL_ERROR);
-+//     return false;
-+//   }
-+//   return CBB_flush(cbb);
-+// }
-+
  static bool add_padding_extension(CBB *cbb, uint16_t ext, size_t len) {
    CBB child;
    if (!CBB_add_u16(cbb, ext) ||  //
-@@ -3383,6 +3459,9 @@ static bool ssl_add_clienthello_tlsext_inner(SSL_HANDSHAKE *hs, CBB *out,
+@@ -3383,6 +3423,9 @@ static bool ssl_add_clienthello_tlsext_inner(SSL_HANDSHAKE *hs, CBB *out,
      size_t i = hs->extension_permutation.empty()
                     ? unpermuted
                     : hs->extension_permutation[unpermuted];
@@ -165,7 +108,7 @@ index b13400097..6f301deb1 100644
      const size_t len_compressed_before = CBB_len(compressed.get());
      if (!kExtensions[i].add_clienthello(hs, &extensions, compressed.get(),
 diff --git a/ssl/handshake_client.cc b/ssl/handshake_client.cc
-index 971ebd0b1..2877c87ef 100644
+index 971ebd0b1..0005c6d79 100644
 --- a/ssl/handshake_client.cc
 +++ b/ssl/handshake_client.cc
 @@ -215,14 +215,6 @@ static void ssl_get_client_disabled(const SSL_HANDSHAKE *hs,
@@ -213,8 +156,16 @@ index 971ebd0b1..2877c87ef 100644
  
    if (hs->min_version < TLS1_3_VERSION && type != ssl_client_hello_inner) {
      bool any_enabled = false;
+@@ -539,6 +510,7 @@ static enum ssl_hs_wait_t do_start_connect(SSL_HANDSHAKE *hs) {
+ 
+   if (!ssl_setup_key_shares(hs, /*override_group_id=*/0) ||
+       !ssl_setup_extension_permutation(hs) ||
++      !ssl_set_extension_order(hs) ||
+       !ssl_encrypt_client_hello(hs, MakeConstSpan(ech_enc, ech_enc_len)) ||
+       !ssl_add_client_hello(hs)) {
+     return ssl_hs_error;
 diff --git a/ssl/internal.h b/ssl/internal.h
-index c9facb699..3ca0ff505 100644
+index c9facb699..eab61611e 100644
 --- a/ssl/internal.h
 +++ b/ssl/internal.h
 @@ -574,9 +574,14 @@ BSSL_NAMESPACE_BEGIN
@@ -253,17 +204,7 @@ index c9facb699..3ca0ff505 100644
    // This is used to hold the local certificate used (i.e. the server
    // certificate for a server or the client certificate for a client).
    UniquePtr<CERT> cert;
-@@ -3103,6 +3114,9 @@ struct SSL_CONFIG {
-   // ClientHello.
-   bool ech_grease_enabled : 1;
- 
-+  // curl-impersonate
-+  // uint16_t record_size_limit : 0;
-+
-   // Enable signed certificate time stamps. Currently client only.
-   bool signed_cert_timestamps_enabled : 1;
- 
-@@ -3490,6 +3504,9 @@ struct ssl_ctx_st {
+@@ -3490,6 +3501,9 @@ struct ssl_ctx_st {
  
    bssl::UniquePtr<bssl::SSLCipherPreferenceList> cipher_list;
  
@@ -273,18 +214,8 @@ index c9facb699..3ca0ff505 100644
    X509_STORE *cert_store = nullptr;
    LHASH_OF(SSL_SESSION) *sessions = nullptr;
    // Most session-ids that will be cached, default is
-@@ -3727,6 +3744,9 @@ struct ssl_ctx_st {
-   // whether OCSP stapling will be requested.
-   bool ocsp_stapling_enabled : 1;
- 
-+  // curl-impersonate: record size limit
-+  // uint16_t record_size_limit : 0;
-+
-   // If true, a client will request certificate timestamps.
-   bool signed_cert_timestamps_enabled : 1;
- 
 diff --git a/ssl/ssl_cipher.cc b/ssl/ssl_cipher.cc
-index fd8cef95d..360dc0710 100644
+index fd8cef95d..3d2c8ff6d 100644
 --- a/ssl/ssl_cipher.cc
 +++ b/ssl/ssl_cipher.cc
 @@ -197,6 +197,37 @@ static constexpr SSL_CIPHER kCiphers[] = {
@@ -455,15 +386,17 @@ index fd8cef95d..360dc0710 100644
  
      // Legacy protocol minimum version aliases. "TLSv1" is intentionally the
      // same as "SSLv3".
-@@ -1154,13 +1253,20 @@ bool ssl_create_cipher_list(UniquePtr<SSLCipherPreferenceList> *out_cipher_list,
+@@ -1154,13 +1253,22 @@ bool ssl_create_cipher_list(UniquePtr<SSLCipherPreferenceList> *out_cipher_list,
        TLS1_CK_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256 & 0xffff,
    };
    static const uint16_t kLegacyCiphers[] = {
 +      TLS1_CK_RSA_WITH_AES_128_SHA256 & 0xffff,
 +      TLS1_CK_RSA_WITH_AES_256_SHA256 & 0xffff,
-+      TLS1_CK_ECDHE_ECDSA_WITH_DES_192_CBC3_SHA & 0xffff,
++      0x0300C008 & 0xffff,
++      // TLS1_CK_ECDHE_ECDSA_WITH_DES_192_CBC3_SHA & 0xffff,
        TLS1_CK_ECDHE_ECDSA_WITH_AES_128_CBC_SHA & 0xffff,
-+      TLS1_CK_ECDHE_RSA_WITH_DES_192_CBC3_SHA & 0xffff,
++      0x0300C012 & 0xffff,
++      // TLS1_CK_ECDHE_RSA_WITH_DES_192_CBC3_SHA & 0xffff,
        TLS1_CK_ECDHE_RSA_WITH_AES_128_CBC_SHA & 0xffff,
        TLS1_CK_ECDHE_PSK_WITH_AES_128_CBC_SHA & 0xffff,
        TLS1_CK_ECDHE_ECDSA_WITH_AES_256_CBC_SHA & 0xffff,
@@ -476,7 +409,7 @@ index fd8cef95d..360dc0710 100644
        TLS1_CK_RSA_WITH_AES_128_GCM_SHA256 & 0xffff,
        TLS1_CK_RSA_WITH_AES_256_GCM_SHA384 & 0xffff,
        TLS1_CK_RSA_WITH_AES_128_SHA & 0xffff,
-@@ -1169,11 +1275,16 @@ bool ssl_create_cipher_list(UniquePtr<SSLCipherPreferenceList> *out_cipher_list,
+@@ -1169,11 +1277,16 @@ bool ssl_create_cipher_list(UniquePtr<SSLCipherPreferenceList> *out_cipher_list,
        TLS1_CK_PSK_WITH_AES_256_CBC_SHA & 0xffff,
        SSL3_CK_RSA_DES_192_CBC3_SHA & 0xffff,
    };
@@ -496,7 +429,7 @@ index fd8cef95d..360dc0710 100644
    for (size_t i = 0; i < OPENSSL_ARRAY_SIZE(co_list); i++) {
      co_list[i].next =
          i + 1 < OPENSSL_ARRAY_SIZE(co_list) ? &co_list[i + 1] : nullptr;
-@@ -1209,8 +1320,13 @@ bool ssl_create_cipher_list(UniquePtr<SSLCipherPreferenceList> *out_cipher_list,
+@@ -1209,8 +1322,13 @@ bool ssl_create_cipher_list(UniquePtr<SSLCipherPreferenceList> *out_cipher_list,
      co_list[num++].cipher = SSL_get_cipher_by_value(id);
      assert(co_list[num - 1].cipher != nullptr);
    }
@@ -512,38 +445,10 @@ index fd8cef95d..360dc0710 100644
                  "Not all ciphers are included in the cipher order");
  
 diff --git a/ssl/ssl_lib.cc b/ssl/ssl_lib.cc
-index 58b68e675..6f1d170ef 100644
+index 58b68e675..d9849f3be 100644
 --- a/ssl/ssl_lib.cc
 +++ b/ssl/ssl_lib.cc
-@@ -528,6 +528,7 @@ ssl_ctx_st::ssl_ctx_st(const SSL_METHOD *ssl_method)
-       retain_only_sha256_of_client_certs(false),
-       quiet_shutdown(false),
-       ocsp_stapling_enabled(false),
-+      // record_size_limit(0),
-       signed_cert_timestamps_enabled(false),
-       channel_id_enabled(false),
-       grease_enabled(false),
-@@ -681,6 +682,7 @@ SSL *SSL_new(SSL_CTX *ctx) {
-   ssl->config->channel_id_enabled = ctx->channel_id_enabled;
-   ssl->config->channel_id_private = UpRef(ctx->channel_id_private);
- 
-+  // ssl->config->record_size_limit = ctx->record_size_limit;
-   ssl->config->signed_cert_timestamps_enabled =
-       ctx->signed_cert_timestamps_enabled;
-   ssl->config->ocsp_stapling_enabled = ctx->ocsp_stapling_enabled;
-@@ -2188,6 +2190,11 @@ void SSL_set_custom_verify(
-   ssl->config->custom_verify_callback = callback;
- }
- 
-+// curl-impersonate: external API for record size limit
-+// void SSL_CTX_add_record_size_limit(SSL_CTX, *ctx, uint16_t limit) {
-+//   ctx->record_size_limit = limit;
-+// }
-+
- void SSL_CTX_enable_signed_cert_timestamps(SSL_CTX *ctx) {
-   ctx->signed_cert_timestamps_enabled = true;
- }
-@@ -3015,6 +3022,12 @@ void SSL_CTX_set_permute_extensions(SSL_CTX *ctx, int enabled) {
+@@ -3015,6 +3015,12 @@ void SSL_CTX_set_permute_extensions(SSL_CTX *ctx, int enabled) {
    ctx->permute_extensions = !!enabled;
  }
  

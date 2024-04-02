@@ -1,11 +1,11 @@
-# curl-impersonate ![Chrome](https://raw.githubusercontent.com/alrra/browser-logos/main/src/chrome/chrome_24x24.png "Chrome") ![Edge](https://raw.githubusercontent.com/alrra/browser-logos/main/src/edge/edge_24x24.png "Edge") ![Firefox](https://raw.githubusercontent.com/alrra/browser-logos/main/src/firefox/firefox_24x24.png "Firefox") ![Safari](https://github.com/alrra/browser-logos/blob/main/src/safari/safari_24x24.png "Safari")
+# curl-impersonate ![Chrome](https://raw.githubusercontent.com/alrra/browser-logos/main/src/chrome/chrome_24x24.png "Chrome") ![Edge](https://raw.githubusercontent.com/alrra/browser-logos/main/src/edge/edge_24x24.png "Edge") ![Safari](https://github.com/alrra/browser-logos/blob/main/src/safari/safari_24x24.png "Safari")
 [![Build and test](https://github.com/yifeikong/curl-impersonate/actions/workflows/build-and-test-make.yml/badge.svg)](https://github.com/yifeikong/curl-impersonate/actions/workflows/build-and-test-make.yml)
 [![Docker images](https://github.com/yifekong/curl-impersonate/actions/workflows/build-and-test-docker.yml/badge.svg)](https://github.com/yifeikong/curl-impersonate/actions/workflows/build-and-test-docker.yml)
 
 > [!NOTE]
 > This is a maintained fork of [curl-impersonate](https://github.com/lwthiker/curl-impersonate). Chrome's fingerprints has changed a lot since the last update of upstream, use this fork if your impersonation is not working.
 
-A special build of [curl](https://github.com/curl/curl) that can impersonate the four major browsers: Chrome, Edge, Safari & Firefox. curl-impersonate is able to perform TLS and HTTP handshakes that are identical to that of a real browser.
+A special build of [curl](https://github.com/curl/curl) that can impersonate the four major browsers: Chrome, Edge, Safari. curl-impersonate is able to perform TLS and HTTP handshakes that are identical to that of a real browser.
 
 curl-impersonate can be used either as a command line tool, similar to the regular curl, or as a library that can be integrated instead of the regular libcurl. See [Usage](#Basic-usage) below.
 
@@ -21,7 +21,7 @@ With the modified curl in this repository, the TLS and HTTP handshakes look *exa
 ## How?
 
 To make this work, `curl` was patched significantly to resemble a browser. Specifically, The modifications that were needed to make this work:
-* Compiling curl with nss, the TLS library that Firefox uses, instead of OpenSSL. For the Chrome version, compiling with BoringSSL, Google's TLS library.
+* For the Chrome version, compiling with BoringSSL, Google's TLS library.
 * Modifying the way curl configures various TLS extensions and SSL options.
 * Adding support for new TLS extensions.
 * Changing the settings that curl uses for its HTTP/2 connections.
@@ -47,13 +47,6 @@ The following browsers can be impersonated.
 | ![Chrome](https://raw.githubusercontent.com/alrra/browser-logos/main/src/chrome/chrome_24x24.png "Chrome") | 99 | 99.0.4844.73 | Android 12 | `chrome99_android` | [curl_chrome99_android](chrome/curl_chrome99_android) |
 | ![Edge](https://raw.githubusercontent.com/alrra/browser-logos/main/src/edge/edge_24x24.png "Edge") | 99 | 99.0.1150.30 | Windows 10 | `edge99` | [curl_edge99](chrome/curl_edge99) |
 | ![Edge](https://raw.githubusercontent.com/alrra/browser-logos/main/src/edge/edge_24x24.png "Edge") | 101 | 101.0.1210.47 | Windows 10 | `edge101` | [curl_edge101](chrome/curl_edge101) |
-| ![Firefox](https://raw.githubusercontent.com/alrra/browser-logos/main/src/firefox/firefox_24x24.png "Firefox") | 91 ESR | 91.6.0esr | Windows 10 | `ff91esr` | [curl_ff91esr](firefox/curl_ff91esr) |
-| ![Firefox](https://raw.githubusercontent.com/alrra/browser-logos/main/src/firefox/firefox_24x24.png "Firefox") | 95 | 95.0.2 | Windows 10 | `ff95` | [curl_ff95](firefox/curl_ff95) |
-| ![Firefox](https://raw.githubusercontent.com/alrra/browser-logos/main/src/firefox/firefox_24x24.png "Firefox") | 98 | 98.0 | Windows 10 | `ff98` | [curl_ff98](firefox/curl_ff98) |
-| ![Firefox](https://raw.githubusercontent.com/alrra/browser-logos/main/src/firefox/firefox_24x24.png "Firefox") | 100 | 100.0 | Windows 10 | `ff100` | [curl_ff100](firefox/curl_ff100) |
-| ![Firefox](https://raw.githubusercontent.com/alrra/browser-logos/main/src/firefox/firefox_24x24.png "Firefox") | 102 | 102.0 | Windows 10 | `ff102` | [curl_ff102](firefox/curl_ff102) |
-| ![Firefox](https://raw.githubusercontent.com/alrra/browser-logos/main/src/firefox/firefox_24x24.png "Firefox") | 109 | 109.0 | Windows 10 | `ff109` | [curl_ff109](firefox/curl_ff109) |
-| ![Firefox](https://raw.githubusercontent.com/alrra/browser-logos/main/src/firefox/firefox_24x24.png "Firefox") | 117 | 117.0.1 | Windows 10 | `ff117` | [curl_ff117](firefox/curl_ff117) |
 | ![Safari](https://github.com/alrra/browser-logos/blob/main/src/safari/safari_24x24.png "Safari") | 15.3 | 16612.4.9.1.8 | MacOS Big Sur | `safari15_3` | [curl_safari15_3](chrome/curl_safari15_3) |
 | ![Safari](https://github.com/alrra/browser-logos/blob/main/src/safari/safari_24x24.png "Safari") | 15.5 | 17613.2.7.1.8 | MacOS Monterey | `safari15_5` | [curl_safari15_5](chrome/curl_safari15_5) |
 | ![Safari](https://github.com/alrra/browser-logos/blob/main/src/safari/safari_24x24.png "Safari") | 17.0 | unclear | MacOS Sonoma | `safari17_0` | [curl_safari17_0](chrome/curl_safari17_0) |
@@ -85,7 +78,7 @@ See [Advanced usage](#Advanced-usage) for more options, including using `libcurl
 More documentation is available in the [docs/](docs/README.md) directory.
 
 ## Installation
-There are two versions of `curl-impersonate` for technical reasons. The **chrome** version is used to impersonate Chrome, Edge and Safari. The **firefox** version is used to impersonate Firefox.
+There are two versions of `curl-impersonate` for technical reasons. The **chrome** version is used to impersonate Chrome, Edge and Safari.
 
 ### Pre-compiled binaries
 Pre-compiled binaries for Windows, Linux and macOS are available at the [GitHub releases](https://github.com/yifeikong/curl-impersonate/releases) page. Before you use them you need to install nss (Firefox's TLS library) and CA certificates:
@@ -113,10 +106,6 @@ See [INSTALL.md](INSTALL.md).
 
 Docker images based on Alpine Linux and Debian with `curl-impersonate` compiled and ready to use are available on [Docker Hub](https://hub.docker.com/r/lwthiker/curl-impersonate). The images contain the binary and all the wrapper scripts. Use like the following:
 ```bash
-# Firefox version, Alpine Linux
-docker pull lwthiker/curl-impersonate:0.5-ff
-docker run --rm lwthiker/curl-impersonate:0.5-ff curl_ff109 https://www.wikipedia.org
-
 # Chrome version, Alpine Linux
 docker pull lwthiker/curl-impersonate:0.5-chrome
 docker run --rm lwthiker/curl-impersonate:0.5-chrome curl_chrome110 https://www.wikipedia.org
@@ -176,7 +165,6 @@ In particular, see the [note about the Firefox version](INSTALL.md#a-note-about-
 
 This repository contains two main folders:
 * [chrome](chrome) - Scripts and patches for building the Chrome version of `curl-impersonate`.
-* [firefox](firefox) - Scripts and patches for building the Firefox version of `curl-impersonate`.
 
 The layout is similar for both. For example, the Firefox directory contains:
 * [Dockerfile](firefox/Dockerfile) - Used to build `curl-impersonate` with all dependencies.
