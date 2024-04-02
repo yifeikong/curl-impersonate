@@ -35,6 +35,10 @@
   - null
   - null
   - chrome_120.0.6099.109_macOS
+- - curl_chrome123
+  - null
+  - null
+  - chrome_123.0.6312.86_win10
 - - curl_chrome99_android
   - null
   - null
@@ -131,6 +135,10 @@
   - CURL_IMPERSONATE: chrome120
   - libcurl-impersonate-chrome
   - chrome_120.0.6099.109_macOS
+- - minicurl
+  - CURL_IMPERSONATE: chrome123
+  - libcurl-impersonate-chrome
+  - chrome_123.0.6312.86_win10
 - - minicurl
   - CURL_IMPERSONATE: chrome99_android
   - libcurl-impersonate-chrome
