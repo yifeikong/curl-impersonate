@@ -1643,7 +1643,7 @@ index 000000000..00a2ba9c3
 +      .tls_session_ticket = true,
 +      .cert_compression = "brotli",
 +      .http_headers = {
-+              "sec-ch-ua: \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Google Chrome\";v=\"120\"",
++              "sec-ch-ua: \"Chromium\";v=\"120\", \"Not)A;Brand\";v=\"24\", \"Google Chrome\";v=\"120\"",
 +              "sec-ch-ua-mobile: ?0",
 +              "sec-ch-ua-platform: \"Windows\"",
 +              "Upgrade-Insecure-Requests: 1",
@@ -1656,9 +1656,8 @@ index 000000000..00a2ba9c3
 +              "Accept-Encoding: gzip, deflate, br",
 +              "Accept-Language: en-US,en;q=0.9"
 +      },
-+      .http2_settings = "1:65536;2:0;4:6291456;6:262144",
-+      .http2_window_update = 15663105,
-+      .ech = "GREASE"
++      .http2_settings = "1:65536;2:0;3:1000;4:6291456;6:262144",
++      .http2_window_update = 15663105
 +  },
 +  {
 +    .target = "chrome99_android",
