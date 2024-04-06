@@ -372,7 +372,6 @@ jobs:
           ${{ matrix.make }} chrome-install-strip
 
       - name: Create tar release files for curl-impersonate
-        if: startsWith(github.ref, 'refs/tags/')
         run: |
           cd ${{ runner.temp }}/install/bin
           if [[ "${{ startsWith(github.ref, 'refs/tags/') }}" == "true" ]]; then
