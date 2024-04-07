@@ -352,7 +352,6 @@ jobs:
           path: ${{ runner.temp }}/libcurl-impersonate*.tar.gz
 
       - name: Clean build
-        if: startsWith(github.ref, 'refs/tags/')
         run: |
           ${{ matrix.make }} chrome-clean
           rm -Rf ${{ runner.temp }}/install
@@ -360,12 +359,10 @@ jobs:
 
        # Recompile curl-impersonate statically when doing a release.
       - name: Reconfigure statically
-        if: startsWith(github.ref, 'refs/tags/')
         run: |
           ./configure --prefix=${{ runner.temp }}/install --enable-static
 
       - name: Rebuild statically
-        if: startsWith(github.ref, 'refs/tags/')
         run: |
           ${{ matrix.make }} chrome-build
           ${{ matrix.make }} chrome-checkbuild
