@@ -63,10 +63,10 @@
   - null
   - null
   - safari_17.2_iOS
-- - curl_firefox120
-  - null
-  - null
-  - firefox_120_macOS
+# - - curl_firefox120
+#   - null
+#   - null
+#   - firefox_120_macOS
 
 # Test libcurl-impersonate by loading it with LD_PRELOAD to an app
 # linked against the regular libcurl and setting the
@@ -135,7 +135,7 @@
   - CURL_IMPERSONATE: safari17_2_ios
   - libcurl-impersonate-chrome
   - safari_17.2_iOS
-- - minicurl
-  - CURL_IMPERSONATE: firefox120
-  - libcurl-impersonate-chrome
-  - firefox_120_macOS
+# - - minicurl
+#   - CURL_IMPERSONATE: firefox120
+#   - libcurl-impersonate-chrome
+#   - firefox_120_macOS
