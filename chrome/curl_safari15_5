@@ -21,4 +21,5 @@ dir=${0%/*}
     --compressed \
     --tlsv1.0 --no-tls-session-ticket \
     --cert-compression zlib \
+    --tls-grease \
     "$@"

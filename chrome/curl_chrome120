@@ -27,4 +27,5 @@ dir=${0%/*}
     --ech GREASE \
     --tlsv1.2 --alps --tls-permute-extensions \
     --cert-compression brotli \
+    --tls-grease \
     "$@"

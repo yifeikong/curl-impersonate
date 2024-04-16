@@ -433,7 +433,7 @@ index 3b536000a..d7135698f 100644
  /**
   * Return the n-th header entry or NULL if it does not exist.
 diff --git a/lib/easy.c b/lib/easy.c
-index 322d1a41b..e201fbc43 100644
+index 322d1a41b..f90f8b82b 100644
 --- a/lib/easy.c
 +++ b/lib/easy.c
 @@ -74,6 +74,8 @@
@@ -445,7 +445,7 @@ index 322d1a41b..e201fbc43 100644
  
  #include "easy_lock.h"
  
-@@ -341,6 +343,202 @@ CURLsslset curl_global_sslset(curl_sslbackend id, const char *name,
+@@ -341,6 +343,203 @@ CURLsslset curl_global_sslset(curl_sslbackend id, const char *name,
    return rc;
  }
  
@@ -586,6 +586,7 @@ index 322d1a41b..e201fbc43 100644
 +  }
 +
 +  if(opts->tls_extension_order) {
++    printf("setting extension order as: %s\n", opts->tls_extension_order);
 +    ret = curl_easy_setopt(data, CURLOPT_TLS_EXTENSION_ORDER, opts->tls_extension_order);
 +  }
 +
@@ -648,7 +649,7 @@ index 322d1a41b..e201fbc43 100644
  /*
   * curl_easy_init() is the external interface to alloc, setup and init an
   * easy handle that is returned. If anything goes wrong, NULL is returned.
-@@ -349,6 +547,8 @@ struct Curl_easy *curl_easy_init(void)
+@@ -349,6 +548,8 @@ struct Curl_easy *curl_easy_init(void)
  {
    CURLcode result;
    struct Curl_easy *data;
@@ -657,7 +658,7 @@ index 322d1a41b..e201fbc43 100644
  
    /* Make sure we inited the global SSL stuff */
    global_init_lock();
-@@ -371,6 +571,29 @@ struct Curl_easy *curl_easy_init(void)
+@@ -371,6 +572,29 @@ struct Curl_easy *curl_easy_init(void)
      return NULL;
    }
  
@@ -687,7 +688,7 @@ index 322d1a41b..e201fbc43 100644
    return data;
  }
  
-@@ -945,6 +1168,13 @@ struct Curl_easy *curl_easy_duphandle(struct Curl_easy *data)
+@@ -945,6 +1169,13 @@ struct Curl_easy *curl_easy_duphandle(struct Curl_easy *data)
      outcurl->state.referer_alloc = TRUE;
    }
  
@@ -701,7 +702,7 @@ index 322d1a41b..e201fbc43 100644
    /* Reinitialize an SSL engine for the new handle
     * note: the engine name has already been copied by dupset */
    if(outcurl->set.str[STRING_SSL_ENGINE]) {
-@@ -1004,6 +1234,9 @@ fail:
+@@ -1004,6 +1235,9 @@ fail:
   */
  void curl_easy_reset(struct Curl_easy *data)
  {
@@ -711,7 +712,7 @@ index 322d1a41b..e201fbc43 100644
    Curl_free_request_state(data);
  
    /* zero out UserDefined data: */
-@@ -1028,6 +1261,23 @@ void curl_easy_reset(struct Curl_easy *data)
+@@ -1028,6 +1262,23 @@ void curl_easy_reset(struct Curl_easy *data)
  #if !defined(CURL_DISABLE_HTTP) && !defined(CURL_DISABLE_DIGEST_AUTH)
    Curl_http_auth_cleanup_digest(data);
  #endif
@@ -1431,10 +1432,10 @@ index 80e183480..8ee390b7e 100644
   * Store nghttp2 version info in this buffer.
 diff --git a/lib/impersonate.c b/lib/impersonate.c
 new file mode 100644
-index 000000000..f40d085ad
+index 000000000..c2aa709f2
 --- /dev/null
 +++ b/lib/impersonate.c
-@@ -0,0 +1,818 @@
+@@ -0,0 +1,876 @@
 +#include "curl_setup.h"
 +
 +#include <curl/curl.h>
@@ -2208,7 +2209,65 @@ index 000000000..f40d085ad
 +    .tls_grease = true
 +  },
 +  {
-+    .target = "firefox120",
++    .target = "okhttp4",
++    .httpversion = CURL_HTTP_VERSION_2_0,
++    .ssl_version = CURL_SSLVERSION_TLSv1_0 | CURL_SSLVERSION_MAX_DEFAULT,
++    .ciphers =
++      "TLS_AES_128_GCM_SHA256,"
++      "TLS_AES_256_GCM_SHA384,"
++      "TLS_CHACHA20_POLY1305_SHA256,"
++      "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,"
++      "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,"
++      "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,"
++      "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,"
++      "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,"
++      "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,"
++      "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,"
++      "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,"
++      "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,"
++      "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,"
++      "TLS_RSA_WITH_AES_256_GCM_SHA384,"
++      "TLS_RSA_WITH_AES_128_GCM_SHA256,"
++      "TLS_RSA_WITH_AES_256_CBC_SHA,"
++      "TLS_RSA_WITH_AES_128_CBC_SHA,"
++      "TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA,"
++      "TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,"
++      "TLS_RSA_WITH_3DES_EDE_CBC_SHA",
++    .curves = "X25519:P-256:P-384:P-521",
++    .sig_hash_algs =
++      "ecdsa_secp256r1_sha256,"
++      "rsa_pss_rsae_sha256,"
++      "rsa_pkcs1_sha256,"
++      "ecdsa_secp384r1_sha384,"
++      "ecdsa_sha1,"
++      "rsa_pss_rsae_sha384,"
++      "rsa_pss_rsae_sha384,"
++      "rsa_pkcs1_sha384,"
++      "rsa_pss_rsae_sha512,"
++      "rsa_pkcs1_sha512,"
++      "rsa_pkcs1_sha1",
++    .npn = false,
++    .alpn = true,
++    .alps = false,
++    .tls_session_ticket = false,
++    .cert_compression = "zlib",
++    .http_headers = {
++        "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
++        "Sec-Fetch-Site: none",
++        "Accept-Encoding: gzip, deflate, br",
++        "Sec-Fetch-Mode: navigate",
++        "user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
++        "Accept-Language: en-US,en;q=0.9",
++        "Sec-Fetch-Dest: document"
++    },
++    .http2_settings = "2:0;4:4194304;3:100",
++    .http2_window_update = 10485760,
++    .http2_pseudo_headers_order = "mspa",
++    .tls_extension_order = NULL,
++    .tls_grease = true
++  },
++  {
++    .target = "firefox120", /* not working */
 +    .httpversion = CURL_HTTP_VERSION_2_0,
 +    .ssl_version = CURL_SSLVERSION_TLSv1_2 | CURL_SSLVERSION_MAX_DEFAULT,
 +    .ciphers =
@@ -2632,7 +2691,7 @@ index ff661482e..29b9d37fa 100644
  
  struct Names {
 diff --git a/lib/vtls/openssl.c b/lib/vtls/openssl.c
-index 8c8f43e83..2ded499c4 100644
+index 8c8f43e83..78c349b90 100644
 --- a/lib/vtls/openssl.c
 +++ b/lib/vtls/openssl.c
 @@ -79,9 +79,24 @@
@@ -2997,7 +3056,7 @@ index 8c8f43e83..2ded499c4 100644
  #ifdef USE_OPENSSL_SRP
    if(ssl_config->primary.username && Curl_auth_allowed_to_host(data)) {
      char * const ssl_username = ssl_config->primary.username;
-@@ -3716,6 +4031,37 @@ static CURLcode ossl_connect_step1(struct Curl_cfilter *cf,
+@@ -3716,6 +4031,40 @@ static CURLcode ossl_connect_step1(struct Curl_cfilter *cf,
    }
  #endif
  
@@ -3020,8 +3079,11 @@ index 8c8f43e83..2ded499c4 100644
 +    SSL_CTX_set_permute_extensions(backend->ctx, 1);
 +  }
 +
-+  /* curl-impersonate: Set TLS extensions order. */
++  /* curl-impersonate: Set TLS extensions order.
++   * TODO: fix string memleak
++   */
 +  if(data->set.str[STRING_TLS_EXTENSION_ORDER]) {
++    printf("setting extension order before boringssl: %s\n", data->set.str[STRING_TLS_EXTENSION_ORDER]);
 +    SSL_CTX_set_extension_order(backend->ctx, data->set.str[STRING_TLS_EXTENSION_ORDER]);
 +  }
 +
@@ -3035,7 +3097,7 @@ index 8c8f43e83..2ded499c4 100644
    /* OpenSSL always tries to verify the peer, this only says whether it should
     * fail to connect if the verification fails, or if it should continue
     * anyway. In the latter case the result of the verification is checked with
-@@ -3771,6 +4117,24 @@ static CURLcode ossl_connect_step1(struct Curl_cfilter *cf,
+@@ -3771,6 +4120,24 @@ static CURLcode ossl_connect_step1(struct Curl_cfilter *cf,
  
    SSL_set_app_data(backend->handle, cf);
  
@@ -3060,7 +3122,7 @@ index 8c8f43e83..2ded499c4 100644
  #if (OPENSSL_VERSION_NUMBER >= 0x0090808fL) && !defined(OPENSSL_NO_TLSEXT) && \
    !defined(OPENSSL_NO_OCSP)
    if(conn_config->verifystatus)
-@@ -3794,6 +4158,21 @@ static CURLcode ossl_connect_step1(struct Curl_cfilter *cf,
+@@ -3794,6 +4161,21 @@ static CURLcode ossl_connect_step1(struct Curl_cfilter *cf,
    }
  #endif
  
@@ -3082,7 +3144,7 @@ index 8c8f43e83..2ded499c4 100644
    SSL_set_app_data(backend->handle, cf);
  
    connssl->reused_session = FALSE;
-@@ -4005,6 +4384,60 @@ static CURLcode ossl_connect_step2(struct Curl_cfilter *cf,
+@@ -4005,6 +4387,60 @@ static CURLcode ossl_connect_step2(struct Curl_cfilter *cf,
            negotiated_group_name? negotiated_group_name : "[blank]",
            OBJ_nid2sn(psigtype_nid));
  
@@ -3516,10 +3578,10 @@ index 57e8fce52..b5d7019b1 100644
  
  struct GlobalConfig {
 diff --git a/src/tool_getparam.c b/src/tool_getparam.c
-index 5fa1ace10..199f5746b 100644
+index 5fa1ace10..80277bbd9 100644
 --- a/src/tool_getparam.c
 +++ b/src/tool_getparam.c
-@@ -296,6 +296,18 @@ static const struct LongShort aliases[]= {
+@@ -296,6 +296,20 @@ static const struct LongShort aliases[]= {
    {"EC", "etag-save",                ARG_FILENAME},
    {"ED", "etag-compare",             ARG_FILENAME},
    {"EE", "curves",                   ARG_STRING},
@@ -3535,10 +3597,12 @@ index 5fa1ace10..199f5746b 100644
 +  {"ER", "ech",                      ARG_STRING},
 +#endif
 +  {"EV", "http2-streams",            ARG_STRING},
++  {"EW", "tls-extension-order",      ARG_STRING},
++  {"EX", "tls-grease",               ARG_BOOL},
    {"f",  "fail",                     ARG_BOOL},
    {"fa", "fail-early",               ARG_BOOL},
    {"fb", "styled-output",            ARG_BOOL},
-@@ -2124,6 +2136,67 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
+@@ -2124,6 +2138,78 @@ ParameterError getparameter(const char *flag, /* f or -long-flag */
          GetStr(&config->ssl_ec_curves, nextarg);
          break;
  
@@ -3573,9 +3637,9 @@ index 5fa1ace10..199f5746b 100644
 +        break;
 +
 +      case 'M':
-+          /* --tls-permute-extensions */
-+          config->ssl_permute_extensions = toggle;
-+          break;
++        /* --tls-permute-extensions */
++        config->ssl_permute_extensions = toggle;
++        break;
 +
 +      case 'N':
 +        /* --http2-window-update */
@@ -3589,6 +3653,17 @@ index 5fa1ace10..199f5746b 100644
 +      case 'V':
 +        /* --http2-streams */
 +        GetStr(&config->http2_streams, nextarg);
++        break;
++
++      case 'W':
++        /* --tls-extension-order */
++        GetStr(&config->tls_extension_order, nextarg);
++        // printf("setting is %s\n", config->tls_extension_order);
++        break;
++
++      case 'X':
++        /* --tls-grease */
++        config->tls_grease = toggle;
 +        break;
 +
 +#ifdef USE_ECH
@@ -3661,7 +3736,7 @@ index 4e7a6dd63..8093b7f8e 100644
     "Disable buffering of the output stream",
     CURLHELP_CURL},
 diff --git a/src/tool_operate.c b/src/tool_operate.c
-index c805b7732..01743da1c 100644
+index c805b7732..4f948b09c 100644
 --- a/src/tool_operate.c
 +++ b/src/tool_operate.c
 @@ -1522,6 +1522,26 @@ static CURLcode single_transfer(struct GlobalConfig *global,
@@ -3706,18 +3781,27 @@ index c805b7732..01743da1c 100644
          if(config->writeout)
            my_setopt_str(curl, CURLOPT_CERTINFO, 1L);
  
-@@ -1942,6 +1970,10 @@ static CURLcode single_transfer(struct GlobalConfig *global,
+@@ -1942,6 +1970,19 @@ static CURLcode single_transfer(struct GlobalConfig *global,
            my_setopt_str(curl, CURLOPT_PROXY_TLS13_CIPHERS,
                          config->proxy_cipher13_list);
  
-+          /* curl-impersonate */
++        /* curl-impersonate */
 +        if(config->ssl_permute_extensions)
-+            my_setopt(curl, CURLOPT_SSL_PERMUTE_EXTENSIONS, 1L);
++          my_setopt(curl, CURLOPT_SSL_PERMUTE_EXTENSIONS, 1L);
++
++        /* curl-impersonate */
++        if (config->tls_grease)
++          my_setopt(curl, CURLOPT_TLS_GREASE, 1L);
++
++        /* curl-impersonate */
++        if(config->tls_extension_order)
++          // printf("setting is %s\n", config->tls_extension_order);
++          my_setopt_str(curl, CURLOPT_TLS_EXTENSION_ORDER, config->tls_extension_order);
 +
          /* new in libcurl 7.9.2: */
          if(config->disable_epsv)
            /* disable it */
-@@ -2151,6 +2183,14 @@ static CURLcode single_transfer(struct GlobalConfig *global,
+@@ -2151,6 +2192,14 @@ static CURLcode single_transfer(struct GlobalConfig *global,
            my_setopt(curl, CURLOPT_SSL_ENABLE_ALPN, 0L);
          }
  
@@ -3732,7 +3816,7 @@ index c805b7732..01743da1c 100644
          /* new in 7.40.0, abstract support added in 7.53.0 */
          if(config->unix_socket_path) {
            if(config->abstract_unix_socket) {
-@@ -2199,6 +2239,16 @@ static CURLcode single_transfer(struct GlobalConfig *global,
+@@ -2199,6 +2248,16 @@ static CURLcode single_transfer(struct GlobalConfig *global,
          if(config->hsts)
            my_setopt_str(curl, CURLOPT_HSTS, config->hsts);
  

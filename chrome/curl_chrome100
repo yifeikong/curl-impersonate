@@ -26,4 +26,5 @@ dir=${0%/*}
     --compressed \
     --tlsv1.2 --alps \
     --cert-compression brotli \
+    --tls-grease \
     "$@"

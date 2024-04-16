@@ -33,18 +33,10 @@ index e500dd76e..487945969 100644
  // permute extensions. For now, this is only implemented for the ClientHello.
  OPENSSL_EXPORT void SSL_set_permute_extensions(SSL *ssl, int enabled);
 diff --git a/ssl/extensions.cc b/ssl/extensions.cc
-index b13400097..6cd8bd750 100644
+index b13400097..a59db770c 100644
 --- a/ssl/extensions.cc
 +++ b/ssl/extensions.cc
-@@ -115,6 +115,7 @@
- 
- #include <algorithm>
- #include <utility>
-+#include <map>
- 
- #include <openssl/aead.h>
- #include <openssl/bytestring.h>
-@@ -3313,6 +3314,7 @@ bool ssl_setup_extension_permutation(SSL_HANDSHAKE *hs) {
+@@ -3313,6 +3313,7 @@ bool ssl_setup_extension_permutation(SSL_HANDSHAKE *hs) {
        !permutation.Init(kNumExtensions)) {
      return false;
    }
@@ -52,23 +44,33 @@ index b13400097..6cd8bd750 100644
    for (size_t i = 0; i < kNumExtensions; i++) {
      permutation[i] = i;
    }
-@@ -3337,6 +3339,44 @@ static const struct tls_extension *tls_extension_find(uint32_t *out_index,
+@@ -3320,6 +3321,11 @@ bool ssl_setup_extension_permutation(SSL_HANDSHAKE *hs) {
+     // Set element |i| to a randomly-selected element 0 <= j <= i.
+     std::swap(permutation[i], permutation[seeds[i - 1] % (i + 1)]);
+   }
++  // fprintf(stderr, "the permuated order is set to:");
++  // for (size_t i = 0; i < kNumExtensions; i++) {
++  //   fprintf(stderr, "%d, ", permutation[i]);
++  // }
++  // fprintf(stderr, "\n");
+   hs->extension_permutation = std::move(permutation);
+   return true;
+ }
+@@ -3337,6 +3343,50 @@ static const struct tls_extension *tls_extension_find(uint32_t *out_index,
    return NULL;
  }
  
 +// curl-impersonate: set customized extension order
 +//
-+// Generate the extension_permutation array from the customized extension order
-+// string.
++// Generate the extension_permutation array from a customized extension order string.
 +//
-+// The customized extension order string is a dash-separated list of
-+// extensions. Each extension is a string of the form "extension_name[:index]".
-+// The index is optional and defaults to 0.
++// The customized extension order string is a dash-separated list of extensions.
 +//
 +bool ssl_set_extension_order(SSL_HANDSHAKE *hs) {
 +  if (hs->config->extension_order == nullptr) {
 +    return true;
 +  }
++  // fprintf(stderr, "order %s\n", hs->config->extension_order);
 +  Array<uint8_t> order;
 +  if (!order.Init(kNumExtensions)) {
 +    return false;
@@ -85,10 +87,18 @@ index b13400097..6cd8bd750 100644
 +  while (ext != nullptr) {
 +    unsigned ext_index;
 +    tls_extension_find(&ext_index, atoi(ext));
++    // fprintf(stderr, "found %d -> %d, ", atoi(ext), ext_index);
 +    order[idx] = ext_index;
 +    ext = strtok(NULL, delimiter);
 +    idx++;
 +  }
++  // fprintf(stderr, "\n");
++  // fprintf(stderr, "the order is set to:");
++  // for (size_t i = 0; i < kNumExtensions; i++) {
++  //   fprintf(stderr, "%d, ", order[i]);
++  // }
++  // fprintf(stderr, "\n");
++  free(tmp);
 +
 +  hs->extension_permutation = std::move(order);
 +  return true;
@@ -97,16 +107,29 @@ index b13400097..6cd8bd750 100644
  static bool add_padding_extension(CBB *cbb, uint16_t ext, size_t len) {
    CBB child;
    if (!CBB_add_u16(cbb, ext) ||  //
-@@ -3383,6 +3423,9 @@ static bool ssl_add_clienthello_tlsext_inner(SSL_HANDSHAKE *hs, CBB *out,
+@@ -3379,10 +3429,14 @@ static bool ssl_add_clienthello_tlsext_inner(SSL_HANDSHAKE *hs, CBB *out,
+     }
+   }
+ 
++  fprintf(stderr, "starting to numeratez\n");
+   for (size_t unpermuted = 0; unpermuted < kNumExtensions; unpermuted++) {
      size_t i = hs->extension_permutation.empty()
                     ? unpermuted
                     : hs->extension_permutation[unpermuted];
-+    // curl-impersonate: skip non-exist extensions
-+    if (i == 255) { continue; }
-+    // end of curl-impersonate
++    fprintf(stderr, "extension %zu,", i);
++    fprintf(stderr, "\n");
++    if (i == 255) { continue; } // curl-impersonate: skip non-exist extensions
      const size_t len_before = CBB_len(&extensions);
      const size_t len_compressed_before = CBB_len(compressed.get());
      if (!kExtensions[i].add_clienthello(hs, &extensions, compressed.get(),
+@@ -3492,6 +3546,7 @@ bool ssl_add_clienthello_tlsext(SSL_HANDSHAKE *hs, CBB *out, CBB *out_encoded,
+     size_t i = hs->extension_permutation.empty()
+                    ? unpermuted
+                    : hs->extension_permutation[unpermuted];
++    if (i == 255) { continue; } // curl-impersonate: skip non-exist extensions
+     const size_t len_before = CBB_len(&extensions);
+     if (!kExtensions[i].add_clienthello(hs, &extensions, &extensions, type)) {
+       OPENSSL_PUT_ERROR(SSL, SSL_R_ERROR_ADDING_EXTENSION);
 diff --git a/ssl/handshake_client.cc b/ssl/handshake_client.cc
 index 971ebd0b1..0005c6d79 100644
 --- a/ssl/handshake_client.cc
@@ -445,10 +468,18 @@ index fd8cef95d..3d2c8ff6d 100644
                  "Not all ciphers are included in the cipher order");
  
 diff --git a/ssl/ssl_lib.cc b/ssl/ssl_lib.cc
-index 58b68e675..d9849f3be 100644
+index 58b68e675..15eb823b3 100644
 --- a/ssl/ssl_lib.cc
 +++ b/ssl/ssl_lib.cc
-@@ -3015,6 +3015,12 @@ void SSL_CTX_set_permute_extensions(SSL_CTX *ctx, int enabled) {
+@@ -657,6 +657,7 @@ SSL *SSL_new(SSL_CTX *ctx) {
+   ssl->config->retain_only_sha256_of_client_certs =
+       ctx->retain_only_sha256_of_client_certs;
+   ssl->config->permute_extensions = ctx->permute_extensions;
++  ssl->config->extension_order = ctx->extension_order;
+   ssl->config->aes_hw_override = ctx->aes_hw_override;
+   ssl->config->aes_hw_override_value = ctx->aes_hw_override_value;
+   ssl->config->tls13_cipher_policy = ctx->tls13_cipher_policy;
+@@ -3015,6 +3016,12 @@ void SSL_CTX_set_permute_extensions(SSL_CTX *ctx, int enabled) {
    ctx->permute_extensions = !!enabled;
  }
  

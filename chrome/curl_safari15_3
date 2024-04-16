@@ -20,4 +20,5 @@ dir=${0%/*}
     --http2-window-update 10485760 \
     --compressed \
     --tlsv1.0 --no-tls-session-ticket \
+    --tls-grease \
     "$@"
