@@ -66,9 +66,9 @@ jobs:
         shell: msys2 {0}
         run: ./win/build.sh
 
-      # - name: Setup tmate session for debugging
-      #   uses: mxschmitt/action-tmate@v3
-      #
+      - name: Setup tmate session for debugging
+        uses: mxschmitt/action-tmate@v3
+
       - uses: ilammy/msvc-dev-cmd@v1
 
       - name: Generate lib files
