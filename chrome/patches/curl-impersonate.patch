@@ -3440,6 +3440,18 @@ index af7ae552e..f22147e22 100644
    void *backend;                    /* vtls backend specific props */
    struct cf_call_data call_data;    /* data handle used in current call */
    struct curltime handshake_done;   /* time when handshake finished */
+diff --git a/libcurl.def b/libcurl.def
+index c6c96063a..ac52a596d 100644
+--- a/libcurl.def
++++ b/libcurl.def
+@@ -5,6 +5,7 @@ curl_easy_escape
+ curl_easy_getinfo
+ curl_easy_header
+ curl_easy_init
++curl_easy_impersonate
+ curl_easy_nextheader
+ curl_easy_option_by_id
+ curl_easy_option_by_name
 diff --git a/libcurl.pc.in b/libcurl.pc.in
 index 9db6b0f89..14c2f23e0 100644
 --- a/libcurl.pc.in
@@ -3547,6 +3559,18 @@ index 35ba19866..3bab99f62 100644
  ])
  
  
+diff --git a/scripts/singleuse.pl b/scripts/singleuse.pl
+index b8a57f8d8..63c0e7a55 100755
+--- a/scripts/singleuse.pl
++++ b/scripts/singleuse.pl
+@@ -51,6 +51,7 @@ my %api = (
+     'curl_easy_escape' => 'API',
+     'curl_easy_getinfo' => 'API',
+     'curl_easy_init' => 'API',
++    'curl_easy_impersonate' => 'API',
+     'curl_easy_pause' => 'API',
+     'curl_easy_perform' => 'API',
+     'curl_easy_recv' => 'API',
 diff --git a/src/Makefile.am b/src/Makefile.am
 index dced53e0f..dee8a2fc3 100644
 --- a/src/Makefile.am
