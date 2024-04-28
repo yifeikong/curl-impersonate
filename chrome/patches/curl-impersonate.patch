@@ -433,7 +433,7 @@ index 3b536000a..d7135698f 100644
  /**
   * Return the n-th header entry or NULL if it does not exist.
 diff --git a/lib/easy.c b/lib/easy.c
-index dc4870608..7a12d9c4d 100644
+index dc4870608..ac45a7da3 100644
 --- a/lib/easy.c
 +++ b/lib/easy.c
 @@ -75,6 +75,8 @@
@@ -445,7 +445,7 @@ index dc4870608..7a12d9c4d 100644
  
  #include "easy_lock.h"
  
-@@ -342,6 +344,203 @@ CURLsslset curl_global_sslset(curl_sslbackend id, const char *name,
+@@ -342,6 +344,207 @@ CURLsslset curl_global_sslset(curl_sslbackend id, const char *name,
    return rc;
  }
  
@@ -590,6 +590,10 @@ index dc4870608..7a12d9c4d 100644
 +    ret = curl_easy_setopt(data, CURLOPT_TLS_EXTENSION_ORDER, opts->tls_extension_order);
 +  }
 +
++  if(opts->http2_stream_weight) {
++    ret = curl_easy_setopt(data, CURLOPT_STREAM_WEIGHT, opts->http2_stream_weight);
++  }
++
 +  /* Always enable all supported compressions. */
 +  ret = curl_easy_setopt(data, CURLOPT_ACCEPT_ENCODING, "");
 +  if(ret)
@@ -649,7 +653,7 @@ index dc4870608..7a12d9c4d 100644
  /*
   * curl_easy_init() is the external interface to alloc, setup and init an
   * easy handle that is returned. If anything goes wrong, NULL is returned.
-@@ -350,6 +549,8 @@ struct Curl_easy *curl_easy_init(void)
+@@ -350,6 +553,8 @@ struct Curl_easy *curl_easy_init(void)
  {
    CURLcode result;
    struct Curl_easy *data;
@@ -658,7 +662,7 @@ index dc4870608..7a12d9c4d 100644
  
    /* Make sure we inited the global SSL stuff */
    global_init_lock();
-@@ -372,6 +573,29 @@ struct Curl_easy *curl_easy_init(void)
+@@ -372,6 +577,29 @@ struct Curl_easy *curl_easy_init(void)
      return NULL;
    }
  
@@ -688,7 +692,7 @@ index dc4870608..7a12d9c4d 100644
    return data;
  }
  
-@@ -952,6 +1176,13 @@ struct Curl_easy *curl_easy_duphandle(struct Curl_easy *data)
+@@ -952,6 +1180,13 @@ struct Curl_easy *curl_easy_duphandle(struct Curl_easy *data)
      outcurl->state.referer_alloc = TRUE;
    }
  
@@ -702,18 +706,17 @@ index dc4870608..7a12d9c4d 100644
    /* Reinitialize an SSL engine for the new handle
     * note: the engine name has already been copied by dupset */
    if(outcurl->set.str[STRING_SSL_ENGINE]) {
-@@ -1040,6 +1271,10 @@ fail:
+@@ -1040,6 +1275,9 @@ fail:
   */
  void curl_easy_reset(struct Curl_easy *data)
  {
 +  char *env_target;
 +  char *env_headers;
 +
-+  Curl_free_request_state(data);
    Curl_req_hard_reset(&data->req, data);
  
    /* zero out UserDefined data: */
-@@ -1064,6 +1299,23 @@ void curl_easy_reset(struct Curl_easy *data)
+@@ -1064,6 +1302,23 @@ void curl_easy_reset(struct Curl_easy *data)
  #if !defined(CURL_DISABLE_HTTP) && !defined(CURL_DISABLE_DIGEST_AUTH)
    Curl_http_auth_cleanup_digest(data);
  #endif
@@ -1094,7 +1097,7 @@ index 92c04e69c..84ece2a16 100644
    }
  
 diff --git a/lib/http2.c b/lib/http2.c
-index 99d7f3b0e..9bf0653d7 100644
+index 99d7f3b0e..324a12fff 100644
 --- a/lib/http2.c
 +++ b/lib/http2.c
 @@ -51,6 +51,7 @@
@@ -1329,7 +1332,7 @@ index 99d7f3b0e..9bf0653d7 100644
    /* all set, traffic will be send on connect */
    result = CURLE_OK;
    CURL_TRC_CF(data, cf, "[0] created h2 session%s",
-@@ -1716,11 +1871,19 @@ out:
+@@ -1716,11 +1871,20 @@ out:
    return rv;
  }
  
@@ -1338,7 +1341,8 @@ index 99d7f3b0e..9bf0653d7 100644
 + * instead of NGINX default stream weight.
 + */
 +#define CHROME_DEFAULT_STREAM_WEIGHT    (256)
-+#define FIREFOX_DEFAULT_STREAM_WEIGHT  (42)
++#define SAFARI_DEFAULT_STREAM_WEIGHT    (255)
++#define FIREFOX_DEFAULT_STREAM_WEIGHT   (42)
 +
  static int sweight_wanted(const struct Curl_easy *data)
  {
@@ -1350,7 +1354,7 @@ index 99d7f3b0e..9bf0653d7 100644
  }
  
  static int sweight_in_effect(const struct Curl_easy *data)
-@@ -1728,6 +1891,7 @@ static int sweight_in_effect(const struct Curl_easy *data)
+@@ -1728,6 +1892,7 @@ static int sweight_in_effect(const struct Curl_easy *data)
    /* 0 weight is not set by user and we take the nghttp2 default one */
    return data->state.priority.weight?
      data->state.priority.weight : NGHTTP2_DEFAULT_WEIGHT;
@@ -1358,7 +1362,7 @@ index 99d7f3b0e..9bf0653d7 100644
  }
  
  /*
-@@ -1736,15 +1900,24 @@ static int sweight_in_effect(const struct Curl_easy *data)
+@@ -1736,15 +1901,25 @@ static int sweight_in_effect(const struct Curl_easy *data)
   * struct.
   */
  
@@ -1375,6 +1379,7 @@ index 99d7f3b0e..9bf0653d7 100644
    struct h2_stream_ctx *depstream = H2_STREAM_CTX(prio->parent);
    int32_t depstream_id = depstream? depstream->id:0;
 +  // int32_t depstream_id = depstream? depstream->id:FIREFOX_DEFAULT_STREAM_DEP;
++
 +  /* curl-impersonate: Set stream exclusive flag to true. */
 +  int exclusive = 1;
    nghttp2_priority_spec_init(pri_spec, depstream_id,
@@ -1384,7 +1389,7 @@ index 99d7f3b0e..9bf0653d7 100644
    data->state.priority = *prio;
  }
  
-@@ -1761,20 +1934,24 @@ static CURLcode h2_progress_egress(struct Curl_cfilter *cf,
+@@ -1761,20 +1936,24 @@ static CURLcode h2_progress_egress(struct Curl_cfilter *cf,
    struct h2_stream_ctx *stream = H2_STREAM_CTX(data);
    int rv = 0;
  
@@ -1433,10 +1438,10 @@ index 80e183480..8ee390b7e 100644
   * Store nghttp2 version info in this buffer.
 diff --git a/lib/impersonate.c b/lib/impersonate.c
 new file mode 100644
-index 000000000..ef2023033
+index 000000000..3f8ec2bf2
 --- /dev/null
 +++ b/lib/impersonate.c
-@@ -0,0 +1,970 @@
+@@ -0,0 +1,975 @@
 +#include "curl_setup.h"
 +
 +#include <curl/curl.h>
@@ -2129,6 +2134,7 @@ index 000000000..ef2023033
 +    .http2_settings = "4:4194304;3:100",
 +    .http2_window_update = 10485760,
 +    .http2_pseudo_headers_order = "mspa",
++    .http2_stream_weight = 255,
 +    .tls_extension_order = NULL,
 +    .tls_grease = true
 +  },
@@ -2184,6 +2190,7 @@ index 000000000..ef2023033
 +    .http2_settings = "4:4194304;3:100",
 +    .http2_window_update = 10485760,
 +    .http2_pseudo_headers_order = "mspa",
++    .http2_stream_weight = 255,
 +    .tls_extension_order = NULL,
 +    .tls_grease = true
 +  },
@@ -2242,6 +2249,7 @@ index 000000000..ef2023033
 +    .http2_settings = "2:0;4:2097152;3:100",
 +    .http2_window_update = 10485760,
 +    .http2_pseudo_headers_order = "mspa",
++    .http2_stream_weight = 255,
 +    .tls_extension_order = NULL,
 +    .tls_grease = true
 +  },
@@ -2300,6 +2308,7 @@ index 000000000..ef2023033
 +    .http2_settings = "2:0;4:4194304;3:100",
 +    .http2_window_update = 10485760,
 +    .http2_pseudo_headers_order = "mspa",
++    .http2_stream_weight = 255,
 +    .tls_extension_order = NULL,
 +    .tls_grease = true
 +  },
@@ -2358,6 +2367,7 @@ index 000000000..ef2023033
 +    .http2_settings = "2:0;4:4194304;3:100",
 +    .http2_window_update = 10485760,
 +    .http2_pseudo_headers_order = "mspa",
++    .http2_stream_weight = 255,
 +    .tls_extension_order = NULL,
 +    .tls_grease = true
 +  },
