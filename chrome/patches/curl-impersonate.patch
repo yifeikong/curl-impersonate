@@ -2419,10 +2419,10 @@ index 000000000..3f8ec2bf2
 +};
 diff --git a/lib/impersonate.h b/lib/impersonate.h
 new file mode 100644
-index 000000000..a9e1e4b45
+index 000000000..904d00dbe
 --- /dev/null
 +++ b/lib/impersonate.h
-@@ -0,0 +1,50 @@
+@@ -0,0 +1,51 @@
 +#ifndef HEADER_CURL_IMPERSONATE_H
 +#define HEADER_CURL_IMPERSONATE_H
 +
@@ -2462,6 +2462,7 @@ index 000000000..a9e1e4b45
 +  const char *ech;
 +  const char *tls_extension_order;
 +  bool tls_grease;
++  int http2_stream_weight;
 +  /* Other TLS options will come here in the future once they are
 +   * configurable through curl_easy_setopt() */
 +};
