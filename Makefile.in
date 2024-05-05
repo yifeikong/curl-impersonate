@@ -9,12 +9,12 @@ SHELL := bash
 # MAKEFLAGS += --no-builtin-rules
 SUBJOBS := 4
 
-BROTLI_VERSION := 1.0.9
+BROTLI_VERSION := 1.1.0
  # In case this is changed, update build-and-test-make.yml as well
  # In case this is changed, update build-and-test-make.yml as well
 BORING_SSL_COMMIT := d24a38200fef19150eef00cad35b138936c08767
-NGHTTP2_VERSION := nghttp2-1.56.0
-NGHTTP2_URL := https://github.com/nghttp2/nghttp2/releases/download/v1.56.0/nghttp2-1.56.0.tar.bz2
+NGHTTP2_VERSION := nghttp2-1.61.0
+NGHTTP2_URL := https://github.com/nghttp2/nghttp2/releases/download/v1.61.0/nghttp2-1.61.0.tar.bz2
 CURL_VERSION := curl-8_7_1
 
 brotli_install_dir := $(abspath brotli-$(BROTLI_VERSION)/out/installed)
