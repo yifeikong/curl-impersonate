@@ -17,8 +17,9 @@ NGHTTP2_VERSION := nghttp2-1.61.0
 NGHTTP2_URL := https://github.com/nghttp2/nghttp2/releases/download/v1.61.0/nghttp2-1.61.0.tar.bz2
 CURL_VERSION := curl-8_7_1
 
+# https://github.com/google/brotli/commit/641bec0e30bea648b3da1cd90fc6b44deb429f71
 brotli_install_dir := $(abspath brotli-$(BROTLI_VERSION)/out/installed)
-brotli_static_libs := $(brotli_install_dir)/lib/libbrotlicommon-static.a $(brotli_install_dir)/lib/libbrotlidec-static.a
+brotli_static_libs := $(brotli_install_dir)/lib/libbrotlicommon.a $(brotli_install_dir)/lib/libbrotlidec.a
 boringssl_install_dir := $(abspath boringssl/build)
 boringssl_static_libs := $(boringssl_install_dir)/lib/libssl.a $(boringssl_install_dir)/lib/libcrypto.a
 nghttp2_install_dir := $(abspath $(NGHTTP2_VERSION)/installed)
@@ -144,6 +145,7 @@ $(brotli_static_libs): brotli-$(BROTLI_VERSION).tar.gz
 			-DCMAKE_C_FLAGS="$(CFLAGS)" \
 	        -DCMAKE_SYSTEM_NAME=$$system_name \
 	        -DCMAKE_SYSTEM_PROCESSOR=$(host_cpu) \
+	        -DBUILD_SHARED_LIBS=OFF \
 	        ..
 
 	@cmake@ --build . --config Release --target install --parallel $(SUBJOBS)
