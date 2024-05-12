@@ -1,26 +1,19 @@
 # Running curl-impersonate from the command line
 
 curl-impersonate can be run from the command line just like the regular curl tool.
-Since it is just a modified curl build, all the original flags and command line options are supported.
+Since it is just a modified curl build, all the original flags and command-line options are supported.
 
-For example, the Firefox version can be run as follows:
-```bash
-curl-impersonate-ff -v -L https://wikipedia.org
-```
+For example, it can be run as follows:
 
-and the Chrome version:
-```bash
-curl-impersonate-chrome -v -L https://wikipedia.org
-```
+    curl-impersonate-chrome -v -L https://wikipedia.org
 
 However, by default, running the binaries as above will not prdouce the same TLS and HTTP/2 signatures as the impersonated browsers. Rather, this project provides additional *wrapper scripts* that launch these binaries with the correct set of command line flags to produce the desired signatures. For example:
-```bash
-curl_chrome104 -v -L https://wikipedia.org
-```
+
+    curl_chrome104 -v -L https://wikipedia.org
 
 will produce a signature identical to Chrome version 104. You can add command line flags and they will be passed on to curl. However, some flags change curl's TLS signature. See below for more details.
 
-The full list of wrapper scripts is available on the [main page](https://github.com/lwthiker/curl-impersonate#supported-browsers).
+The full list of wrapper scripts is available on the [main page](https://github.com/yifeikong/curl-impersonate#supported-browsers).
 
 ## Changing the HTTP headers
 The wrapper scripts use a certain set of HTTP headers such as `User-Agent`, `Accept-Encoding` and a few more.

@@ -5,53 +5,21 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-{{#debian}}
-# Use it as a common base.
-FROM python:3.11-slim-bookworm as builder
-{{/debian}}
-{{#alpine}}
 FROM alpine:3.18 as builder
-{{/alpine}}
 
 WORKDIR /build
 
 # Common dependencies
-{{#debian}}
-RUN apt-get update && \
-    apt-get install -y git ninja-build cmake curl zlib1g-dev
-{{/debian}}
-{{#alpine}}
 RUN apk add git bash build-base make cmake ninja curl zlib-dev patch linux-headers python3 python3-dev
-{{/alpine}}
 
 # The following are needed because we are going to change some autoconf scripts,
 # both for libnghttp2 and curl.
-{{#debian}}
-RUN apt-get install -y autoconf automake autotools-dev pkg-config libtool git
-{{/debian}}
-{{#alpine}}
 RUN apk add autoconf automake pkgconfig libtool
-{{/alpine}}
 
-{{#debian}}
-# Dependencies for downloading and building nghttp2
-RUN apt-get install -y bzip2
-{{/debian}}
 
-{{#debian}}
-# Dependencies for downloading and building curl
-RUN apt-get install -y xz-utils
-{{/debian}}
 
-{{#chrome}}
 # Dependencies for downloading and building BoringSSL
-    {{#debian}}
-RUN apt-get install -y g++ golang-go unzip
-    {{/debian}}
-    {{#alpine}}
 RUN apk add g++ go unzip
-    {{/alpine}}
-{{/chrome}}
 
 # Download and compile libbrotli
 ARG BROTLI_VERSION=1.0.9
@@ -62,7 +30,6 @@ RUN cd brotli-${BROTLI_VERSION} && \
     cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./installed .. && \
     cmake --build . --config Release --target install
 
-{{#chrome}}
 # BoringSSL doesn't have versions. Choose a commit that is used in a stable
 # Chromium version.
 ARG BORING_SSL_COMMIT=d24a38200fef19150eef00cad35b138936c08767
@@ -72,9 +39,9 @@ RUN curl -L https://github.com/google/boringssl/archive/${BORING_SSL_COMMIT}.zip
 
 # Compile BoringSSL.
 # See https://boringssl.googlesource.com/boringssl/+/HEAD/BUILDING.md
-COPY patches/boringssl-*.patch boringssl/
+COPY patches/boringssl.patch boringssl/
 RUN cd boringssl && \
-    for p in $(ls boringssl-*.patch); do patch -p1 < $p; done && \
+    for p in $(ls boringssl.patch); do patch -p1 < $p; done && \
     mkdir build && cd build && \
     cmake \
         -DCMAKE_C_FLAGS="-Wno-error=array-bounds -Wno-error=stringop-overflow" \
@@ -87,7 +54,6 @@ RUN mkdir boringssl/build/lib && \
     ln -s ../crypto/libcrypto.a boringssl/build/lib/libcrypto.a && \
     ln -s ../ssl/libssl.a boringssl/build/lib/libssl.a && \
     cp -R boringssl/include boringssl/build
-{{/chrome}}
 
 ARG NGHTTP2_VERSION=nghttp2-1.56.0
 ARG NGHTTP2_URL=https://github.com/nghttp2/nghttp2/releases/download/v1.56.0/nghttp2-1.56.0.tar.bz2
@@ -102,7 +68,7 @@ RUN cd ${NGHTTP2_VERSION} && \
     make && make install
 
 # Download curl.
-ARG CURL_VERSION=curl-8.1.1
+ARG CURL_VERSION=curl-8.5.0
 RUN curl -o ${CURL_VERSION}.tar.xz https://curl.se/download/${CURL_VERSION}.tar.xz
 RUN tar xf ${CURL_VERSION}.tar.xz
 
@@ -121,21 +87,17 @@ RUN cd ${CURL_VERSION} && \
                 --enable-websockets \
                 --with-nghttp2=/build/${NGHTTP2_VERSION}/installed \
                 --with-brotli=/build/brotli-${BROTLI_VERSION}/build/installed \
-                --without-zstd \
-{{#chrome}}
+                --with-zstd \
                 --enable-ech \
                 --with-openssl=/build/boringssl/build \
                 LIBS="-pthread" \
                 CFLAGS="-I/build/boringssl/build" \
-{{/chrome}}
                 USE_CURL_SSLKEYLOGFILE=true && \
     make && make install
 
 RUN mkdir out && \
-{{#chrome}}
     cp /build/install/bin/curl-impersonate-chrome out/ && \
     ln -s curl-impersonate-chrome out/curl-impersonate && \
-{{/chrome}}
     strip out/curl-impersonate
 
 # Verify that the resulting 'curl' has all the necessary features.
@@ -154,24 +116,20 @@ RUN cd ${CURL_VERSION} && \
     ./configure --prefix=/build/install \
                 --with-nghttp2=/build/${NGHTTP2_VERSION}/installed \
                 --with-brotli=/build/brotli-${BROTLI_VERSION}/build/installed \
-                --without-zstd \
-{{#chrome}}
+                --with-zstd \
                 --enable-ech \
                 --with-openssl=/build/boringssl/build \
                 LIBS="-pthread" \
                 CFLAGS="-I/build/boringssl/build" \
-{{/chrome}}
                 USE_CURL_SSLKEYLOGFILE=true && \
     make clean && make && make install
 
 # Copy libcurl-impersonate and symbolic links
 RUN cp -d /build/install/lib/libcurl-impersonate* /build/out
 
-{{#chrome}}
 RUN ver=$(readlink -f ${CURL_VERSION}/lib/.libs/libcurl-impersonate-chrome.so | sed 's/.*so\.//') && \
     major=$(echo -n $ver | cut -d'.' -f1) && \
     ln -s "libcurl-impersonate-chrome.so.$ver" "out/libcurl-impersonate.so.$ver" && \
-{{/chrome}}
     ln -s "libcurl-impersonate.so.$ver" "out/libcurl-impersonate.so" && \
     strip "out/libcurl-impersonate.so.$ver"
 
@@ -180,32 +138,15 @@ RUN ver=$(readlink -f ${CURL_VERSION}/lib/.libs/libcurl-impersonate-chrome.so | 
 RUN ! (ldd ./out/curl-impersonate | grep -q -e nghttp2 -e brotli -e ssl -e crypto)
 
 # Wrapper scripts
-{{#chrome}}
 COPY curl_chrome* curl_edge* curl_safari* out/
-{{/chrome}}
-{{#alpine}}
 # Replace /usr/bin/env bash with /usr/bin/env ash
 RUN sed -i 's@/usr/bin/env bash@/usr/bin/env ash@' out/curl_*
-{{/alpine}}
 RUN chmod +x out/curl_*
 
 # Create a final, minimal image with the compiled binaries
 # only.
-{{#alpine}}
 FROM alpine:3.18
-{{/alpine}}
-{{#debian}}
-FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-{{/debian}}
 # Copy curl-impersonate from the builder image
 COPY --from=builder /build/install /usr/local
-{{#debian}}
-# Update the loader's cache
-RUN ldconfig
-# Copy to /build/out as well for backward compatibility with previous versions.
-COPY --from=builder /build/out /build/out
-{{/debian}}
 # Wrapper scripts
 COPY --from=builder /build/out/curl_* /usr/local/bin/

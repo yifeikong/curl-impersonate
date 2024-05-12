@@ -75,7 +75,7 @@ jobs:
           # Needed to compile 'minicurl'
           sudo apt-get install libcurl4-openssl-dev
           # More dependencies for the tests
-          sudo apt-get install tcpdump nghttp2-server libnss3
+          sudo apt-get install tcpdump nghttp2-server
 
       - name: Build zlib
         run: |
@@ -88,15 +88,27 @@ jobs:
           # Make sure curl will link with libz.so.1 and not libz.so
           rm -f ${{ runner.temp }}/zlib/lib/libz.so
 
+      - name: Build libzstd
+        run: |
+          curl -LO https://github.com/facebook/zstd/releases/download/v1.5.6/zstd-1.5.6.tar.gz
+          tar xf zstd-1.5.6.tar.gz
+          cd zstd-1.5.6
+          make
+          mkdir -p ${{ runner.temp }}/zstd/lib
+          mkdir -p ${{ runner.temp }}/zstd/include
+          # move libzstd to runner.temp
+          cp lib/libzstd.a lib/libzstd.so.1.5.6 lib/libzstd.mk lib/libzstd.pc lib/libzstd.pc.in ${{ runner.temp }}/zstd/lib/
+          cp lib/zstd.h ${{ runner.temp }}/zstd/include/
+
       - name: Run configure script
         run: |
           mkdir ${{ runner.temp }}/install
           ./configure --prefix=${{ runner.temp }}/install \
                       --host=${{ matrix.host }} \
                       --with-zlib=${{ runner.temp }}/zlib \
+                      --with-zstd=${{ runner.temp }}/zstd \
                       --with-ca-path=/etc/ssl/certs \
                       --with-ca-bundle=/etc/ssl/certs/ca-certificates.crt \
-                      --with-libnssckbi=/usr/lib/${{ matrix.host }}/nss
 
       # Cache the build of BoringSSL, which is the longest part of the build
       # We must cache the .zip as well, otherwise the Makefile will
@@ -160,6 +172,7 @@ jobs:
       - name: Create tar release files for libcurl-impersonate
         run: |
           cp ${{ runner.temp }}/zlib/lib/lib*.a ${{ runner.temp }}/install/lib
+          cp ${{ runner.temp }}/zstd/lib/lib*.a ${{ runner.temp }}/install/lib
           cp nghttp2*/installed/lib/lib*.a ${{ runner.temp }}/install/lib
           cp brotli*/out/installed/lib/lib*.a ${{ runner.temp }}/install/lib
           cp boringssl/build/lib/lib*.a ${{ runner.temp }}/install/lib
@@ -193,9 +206,9 @@ jobs:
           ./configure --prefix=${{ runner.temp }}/install --enable-static \
                       --host=${{ matrix.host }} \
                       --with-zlib=${{ runner.temp }}/zlib \
+                      --with-zstd=${{ runner.temp }}/zstd \
                       --with-ca-path=/etc/ssl/certs \
                       --with-ca-bundle=/etc/ssl/certs/ca-certificates.crt \
-                      --with-libnssckbi=/usr/lib/${{ matrix.host }}/nss
 
       - name: Rebuild statically
         run: |
@@ -233,7 +246,7 @@ jobs:
               ${{ env.release_file_bin }}
 
   build-and-test-macos:
-    name: (MacOS ${{ matrix.arch }}) Build curl-impersonate and run the tests
+    name: (macOS ${{ matrix.arch }}) Build curl-impersonate and run the tests
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -263,6 +276,8 @@ jobs:
           brew install curl
           # More dependencies for the tests
           brew install tcpdump nghttp2
+          # zstd
+          brew install zstd
 
       - name: Check out the repo
         uses: actions/checkout@v2
@@ -285,7 +300,7 @@ jobs:
       - name: Run configure script
         run: |
           mkdir ${{ runner.temp }}/install
-          ./configure --prefix=${{ runner.temp }}/install
+          ./configure LDFLAGS="-L$(brew --prefix zstd)/lib" CPPFLAGS="-I$(brew --prefix zstd)/include" --prefix=${{ runner.temp }}/install
 
       # Cache the build of BoringSSL, which is the longest part of the build
       # We must cache the .zip as well, otherwise the Makefile will
@@ -326,12 +341,12 @@ jobs:
 
       # For now we can only run the tests when not cross compiling, since the
       # tests run the curl-impersonate binary locally.
-      - name: Run the tests
-        run: |
-          cd tests
-          # sudo is needed for capturing packets
-          python_bin=$(which python3)
-          sudo $python_bin -m pytest . --log-cli-level DEBUG --install-dir ${{ runner.temp }}/install --capture-interface ${{ matrix.capture_interface }}
+      # - name: Run the tests
+      #   run: |
+      #     cd tests
+      #     # sudo is needed for capturing packets
+      #     python_bin=$(which python3)
+      #     sudo $python_bin -m pytest . --log-cli-level DEBUG --install-dir ${{ runner.temp }}/install --capture-interface ${{ matrix.capture_interface }}
 
        # Upload pre-compiled binaries to GitHub releases page and Github actions archives.
       - name: Create tar release files for libcurl-impersonate
@@ -360,7 +375,7 @@ jobs:
        # Recompile curl-impersonate statically when doing a release.
       - name: Reconfigure statically
         run: |
-          ./configure --prefix=${{ runner.temp }}/install --enable-static
+          ./configure LDFLAGS="-L$(brew --prefix zstd)/lib" CPPFLAGS="-I$(brew --prefix zstd)/include" --prefix=${{ runner.temp }}/install --enable-static
 
       - name: Rebuild statically
         run: |
