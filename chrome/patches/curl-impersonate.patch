@@ -241,6 +241,9 @@ index cc24c0506..9cba4dd14 100644
 +   */
 +  CURLOPT(CURLOPT_TLS_EXTENSION_ORDER, CURLOPTTYPE_STRINGPOINT, 336),
 +
++  /* Enable/disable TLS signed certificate timestamp */
++  CURLOPT(CURLOPT_SSL_ENABLE_SIGNED_CERITIFICATE_TIMESTAMP, CURLOPTTYPE_LONG, 337),
++
    CURLOPT_LASTENTRY /* the last unused */
  } CURLoption;
  
@@ -516,6 +519,11 @@ index 322d1a41b..805613e6f 100644
 +  if(ret)
 +    return ret;
 +
++  ret = curl_easy_setopt(data, CURLOPT_SSL_ENABLE_SIGNED_CERITIFICATE_TIMESTAMP,
++                         opts->tls_signed_certificate_timestamp ? 1 : 0);
++  if(ret)
++    return ret;
++
 +  if(opts->tls_permute_extensions) {
 +    ret = curl_easy_setopt(data, CURLOPT_SSL_PERMUTE_EXTENSIONS, 1);
 +    if(ret)
@@ -776,6 +784,7 @@ index e69c658b0..027dd6f93 100644
 +  {"SSL_ENABLE_ALPS", CURLOPT_SSL_ENABLE_ALPS, CURLOT_LONG, 0},
    {"SSL_ENABLE_NPN", CURLOPT_SSL_ENABLE_NPN, CURLOT_LONG, 0},
 +  {"SSL_ENABLE_TICKET", CURLOPT_SSL_ENABLE_TICKET, CURLOT_LONG, 0},
++  {"SSL_ENABLE_SIGNED_CERITIFICATE_TIMESTAMP", CURLOPT_SSL_ENABLE_SIGNED_CERITIFICATE_TIMESTAMP, CURLOT_LONG, 0},
    {"SSL_FALSESTART", CURLOPT_SSL_FALSESTART, CURLOT_LONG, 0},
    {"SSL_OPTIONS", CURLOPT_SSL_OPTIONS, CURLOT_VALUES, 0},
    {"SSL_SESSIONID_CACHE", CURLOPT_SSL_SESSIONID_CACHE, CURLOT_LONG, 0},
@@ -1467,6 +1476,7 @@ index 000000000..ef2023033
 +    .alpn = true,
 +    .alps = true,
 +    .tls_session_ticket = true,
++    .tls_signed_certificate_timestamp = true,
 +    .cert_compression = "brotli",
 +    .http_headers = {
 +      "sec-ch-ua: \" Not A;Brand\";v=\"99\", \"Chromium\";v=\"99\", \"Google Chrome\";v=\"99\"",
@@ -1511,6 +1521,7 @@ index 000000000..ef2023033
 +    .alpn = true,
 +    .alps = true,
 +    .tls_session_ticket = true,
++    .tls_signed_certificate_timestamp = true,
 +    .cert_compression = "brotli",
 +    .http_headers = {
 +      "sec-ch-ua: \" Not A;Brand\";v=\"99\", \"Chromium\";v=\"100\", \"Google Chrome\";v=\"100\"",
@@ -1555,6 +1566,7 @@ index 000000000..ef2023033
 +    .alpn = true,
 +    .alps = true,
 +    .tls_session_ticket = true,
++    .tls_signed_certificate_timestamp = true,
 +    .cert_compression = "brotli",
 +    .http_headers = {
 +      "sec-ch-ua: \" Not A;Brand\";v=\"99\", \"Chromium\";v=\"101\", \"Google Chrome\";v=\"101\"",
@@ -1599,6 +1611,7 @@ index 000000000..ef2023033
 +    .alpn = true,
 +    .alps = true,
 +    .tls_session_ticket = true,
++    .tls_signed_certificate_timestamp = true,
 +    .cert_compression = "brotli",
 +    .http_headers = {
 +      "sec-ch-ua: \"Chromium\";v=\"104\", \" Not A;Brand\";v=\"99\", \"Google Chrome\";v=\"104\"",
@@ -1643,6 +1656,7 @@ index 000000000..ef2023033
 +    .alpn = true,
 +    .alps = true,
 +    .tls_session_ticket = true,
++    .tls_signed_certificate_timestamp = true,
 +    .cert_compression = "brotli",
 +    .http_headers = {
 +      "sec-ch-ua: \"Google Chrome\";v=\"107\", \"Chromium\";v=\"107\", \"Not=A?Brand\";v=\"24\"",
@@ -1688,6 +1702,7 @@ index 000000000..ef2023033
 +    .alps = true,
 +    .tls_permute_extensions = true,
 +    .tls_session_ticket = true,
++    .tls_signed_certificate_timestamp = true,
 +    .cert_compression = "brotli",
 +    .http_headers = {
 +      "sec-ch-ua: \"Chromium\";v=\"110\", \"Not A(Brand\";v=\"24\", \"Google Chrome\";v=\"110\"",
@@ -1733,6 +1748,7 @@ index 000000000..ef2023033
 +    .alps = true,
 +    .tls_permute_extensions = true,
 +    .tls_session_ticket = true,
++    .tls_signed_certificate_timestamp = true,
 +    .cert_compression = "brotli",
 +    .http_headers = {
 +      "sec-ch-ua: \"Chromium\";v=\"116\", \"Not)A;Brand\";v=\"24\", \"Google Chrome\";v=\"116\"",
@@ -1778,6 +1794,7 @@ index 000000000..ef2023033
 +    .alps = true,
 +    .tls_permute_extensions = true,
 +    .tls_session_ticket = true,
++    .tls_signed_certificate_timestamp = true,
 +    .cert_compression = "brotli",
 +    .http_headers = {
 +      "sec-ch-ua: \"Google Chrome\";v=\"119\", \"Chromium\";v=\"119\", \"Not?A_Brand\";v=\"24\"",
@@ -1824,6 +1841,7 @@ index 000000000..ef2023033
 +    .alps = true,
 +    .tls_permute_extensions = true,
 +    .tls_session_ticket = true,
++    .tls_signed_certificate_timestamp = true,
 +    .cert_compression = "brotli",
 +    .http_headers = {
 +      "sec-ch-ua: \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Google Chrome\";v=\"120\"",
@@ -1870,6 +1888,7 @@ index 000000000..ef2023033
 +    .alps = true,
 +    .tls_permute_extensions = true,
 +    .tls_session_ticket = true,
++    .tls_signed_certificate_timestamp = true,
 +    .cert_compression = "brotli",
 +    .http_headers = {
 +      "sec-ch-ua: \"Google Chrome\";v=\"123\", \"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"123\"",
@@ -1917,6 +1936,7 @@ index 000000000..ef2023033
 +    .alps = true,
 +    .tls_permute_extensions = true,
 +    .tls_session_ticket = true,
++    .tls_signed_certificate_timestamp = true,
 +    .cert_compression = "brotli",
 +    .http_headers = {
 +      "sec-ch-ua: \"Chromium\";v=\"124\", \"Google Chrome\";v=\"124\", \"Not-A.Brand\";v=\"99\"",
@@ -1963,6 +1983,7 @@ index 000000000..ef2023033
 +    .alpn = true,
 +    .alps = true,
 +    .tls_session_ticket = true,
++    .tls_signed_certificate_timestamp = true,
 +    .cert_compression = "brotli",
 +    .http_headers = {
 +      "sec-ch-ua: \" Not A;Brand\";v=\"99\", \"Chromium\";v=\"99\", \"Google Chrome\";v=\"99\"",
@@ -2007,6 +2028,7 @@ index 000000000..ef2023033
 +    .alpn = true,
 +    .alps = true,
 +    .tls_session_ticket = true,
++    .tls_signed_certificate_timestamp = true,
 +    .cert_compression = "brotli",
 +    .http_headers = {
 +      "sec-ch-ua: \" Not A;Brand\";v=\"99\", \"Chromium\";v=\"99\", \"Microsoft Edge\";v=\"99\"",
@@ -2051,6 +2073,7 @@ index 000000000..ef2023033
 +    .alpn = true,
 +    .alps = true,
 +    .tls_session_ticket = true,
++    .tls_signed_certificate_timestamp = true,
 +    .cert_compression = "brotli",
 +    .http_headers = {
 +      "sec-ch-ua: \" Not A;Brand\";v=\"99\", \"Chromium\";v=\"101\", \"Microsoft Edge\";v=\"101\"",
@@ -2119,6 +2142,7 @@ index 000000000..ef2023033
 +    .alpn = true,
 +    .alps = false,
 +    .tls_session_ticket = false,
++    .tls_signed_certificate_timestamp = false,
 +    .http_headers = {
 +      "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.3 Safari/605.1.15",
 +      "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -2173,6 +2197,7 @@ index 000000000..ef2023033
 +    .alpn = true,
 +    .alps = false,
 +    .tls_session_ticket = false,
++    .tls_signed_certificate_timestamp = false,
 +    .cert_compression = "zlib",
 +    .http_headers = {
 +      "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.5 Safari/605.1.15",
@@ -2228,6 +2253,7 @@ index 000000000..ef2023033
 +    .alpn = true,
 +    .alps = false,
 +    .tls_session_ticket = false,
++    .tls_signed_certificate_timestamp = false,
 +    .cert_compression = "zlib",
 +    .http_headers = {
 +      "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -2286,6 +2312,7 @@ index 000000000..ef2023033
 +    .alpn = true,
 +    .alps = false,
 +    .tls_session_ticket = false,
++    .tls_signed_certificate_timestamp = false,
 +    .cert_compression = "zlib",
 +    .http_headers = {
 +      "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -2344,6 +2371,7 @@ index 000000000..ef2023033
 +    .alpn = true,
 +    .alps = false,
 +    .tls_session_ticket = false,
++    .tls_signed_certificate_timestamp = false,
 +    .cert_compression = "zlib",
 +    .http_headers = {
 +      "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -2439,6 +2467,8 @@ index 000000000..a9e1e4b45
 +  bool alps;
 +  /* Enable TLS session ticket extension. */
 +  bool tls_session_ticket;
++  /* Enable TLS signed certificate timestamp. */
++  bool tls_signed_certificate_timestamp;
 +  /* TLS certificate compression algorithms.
 +   * (TLS extension 27) */
 +  const char *cert_compression;
@@ -2579,6 +2609,9 @@ index a08140cce..05468ff49 100644
 +    result = Curl_setstropt(&data->set.str[STRING_HTTP2_STREAMS],
 +                            va_arg(param, char *));
 +    break;
++  case CURLOPT_SSL_ENABLE_SIGNED_CERITIFICATE_TIMESTAMP:
++    data->set.ssl_enable_signed_certificate_timestamp = (0 != va_arg(param, long)) ? TRUE : FALSE;
++    break;
 +#endif
  #ifdef USE_UNIX_SOCKETS
    case CURLOPT_UNIX_SOCKET_PATH:
@@ -2673,6 +2706,7 @@ index b81785fe2..699e8037a 100644
    set->tcp_nodelay = TRUE;
    set->ssl_enable_alpn = TRUE;
 +  set->ssl_enable_ticket = TRUE;
++  set->ssl_enable_signed_certificate_timestamp = TRUE;
    set->expect_100_timeout = 1000L; /* Wait for a second by default. */
    set->sep_headers = TRUE; /* separated header lists by default */
    set->buffer_size = READBUFFER_SIZE;
@@ -2768,6 +2802,7 @@ index ff661482e..29b9d37fa 100644
    BIT(ssl_enable_alpn);/* TLS ALPN extension? */
 +  BIT(ssl_enable_alps);/* TLS ALPS extension? */
 +  BIT(ssl_enable_ticket); /* TLS session ticket extension */
++  BIT(ssl_enable_signed_certificate_timestamp); /* TLS signed certificate timestamp extension */
 +  BIT(ssl_permute_extensions); /* TLS Permute extensions */
    BIT(path_as_is);     /* allow dotdots? */
    BIT(pipewait);       /* wait for multiplex status before starting a new
@@ -3106,7 +3141,9 @@ index 8c8f43e83..030832aeb 100644
 + 
 +  /* curl-impersonate: Enable TLS extensions 18 - signed_certificate_timestamp. */
 +  // XXX: Firefox does not enable this
-+  SSL_CTX_enable_signed_cert_timestamps(backend->ctx);
++  if(data->set.ssl_enable_signed_certificate_timestamp) {
++    SSL_CTX_enable_signed_cert_timestamps(backend->ctx);
++  }
 +
 +  /* curl-impersonate: Enable TLS extensions 5 - status_request */
 +  SSL_CTX_enable_ocsp_stapling(backend->ctx);
@@ -3678,6 +3715,7 @@ index 57e8fce52..b5d7019b1 100644
    bool noalpn;                    /* enable/disable TLS ALPN extension */
 +  bool alps;                      /* enable/disable TLS ALPS extension */
 +  bool noticket;                  /* enable/disable TLS session ticket */
++  bool notimestamp;               /* enable/disable TLS signed certificate timestamp */
    char *unix_socket_path;         /* path to Unix domain socket */
    bool abstract_unix_socket;      /* path to an abstract Unix domain socket */
    bool falsestart;
@@ -3794,6 +3832,12 @@ index 5fa1ace10..80277bbd9 100644
 +        }
 +        break;
 +#endif
++
++      case 'Z':
++        /* --tls-signed-certificate-timestamp */
++        config->notimestamp = (!toggle)?TRUE:FALSE;
++        break;
++
        default: /* unknown flag */
          err = PARAM_OPTION_UNKNOWN;
          break;
@@ -3929,6 +3973,10 @@ index c805b7732..4f948b09c 100644
 +          my_setopt(curl, CURLOPT_SSL_ENABLE_TICKET, 0L);
 +        }
 +
++        if (config->notimestamp) {
++          my_setopt(curl, CURLOPT_SSL_ENABLE_SIGNED_CERITIFICATE_TIMESTAMP, 0L);
++        }
++
          /* new in 7.40.0, abstract support added in 7.53.0 */
          if(config->unix_socket_path) {
            if(config->abstract_unix_socket) {
@@ -3958,6 +4006,7 @@ index de3b78fab..e034c9848 100644
    NV1(CURLOPT_SSL_ENABLE_NPN, 1),
    NV1(CURLOPT_SSL_ENABLE_ALPN, 1),
 +  NV1(CURLOPT_SSL_ENABLE_TICKET, 1),
++  NV1(CURLOPT_SSL_ENABLE_SIGNED_CERITIFICATE_TIMESTAMP, 1),
 +  NV1(CURLOPT_SSL_PERMUTE_EXTENSIONS, 1),
    NV1(CURLOPT_TCP_NODELAY, 1),
    NV1(CURLOPT_PROXY_SSL_VERIFYPEER, 1),
