@@ -1,10 +1,10 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 656aa7c74..5702de3ec 100644
+index 656aa7c74..594e9574a 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -598,6 +598,29 @@ if(CURL_ZSTD)
-   endif()
- endif()
+@@ -627,6 +627,29 @@ macro(openssl_check_symbol_exists SYMBOL FILES VARIABLE)
+   cmake_pop_check_state()
+ endmacro()
  
 +option(USE_ECH "Enable ECH support" OFF)
 +if(USE_ECH)
@@ -29,9 +29,9 @@ index 656aa7c74..5702de3ec 100644
 +  endif()
 +endif()
 +
- # Check symbol in OpenSSL-like TLS backends.
- macro(openssl_check_symbol_exists SYMBOL FILES VARIABLE)
-   cmake_push_check_state()
+ # Ensure that the OpenSSL fork actually supports QUIC.
+ macro(openssl_check_quic)
+   if(NOT DEFINED HAVE_SSL_CTX_SET_QUIC_METHOD)
 diff --git a/Makefile.am b/Makefile.am
 index 658189e47..1ebc38b5a 100644
 --- a/Makefile.am
