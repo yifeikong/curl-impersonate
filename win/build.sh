@@ -52,11 +52,11 @@ cd curl
 patchfile=../../chrome/patches/curl-impersonate.patch
 patch -p1 < $patchfile
 
-sed -i 's/-shared/-s -static -shared/g' lib/Makefile.mk
-sed -i 's/-static/-s -static/g' src/Makefile.mk
-
-sed -i 's/-DUSE_NGHTTP2/-DUSE_NGHTTP2 -DNGHTTP2_STATICLIB/g' lib/Makefile.mk
-sed -i 's/-DUSE_NGHTTP2/-DUSE_NGHTTP2 -DNGHTTP2_STATICLIB/g' src/Makefile.mk
+# sed -i 's/-shared/-s -static -shared/g' lib/Makefile.mk
+# sed -i 's/-static/-s -static/g' src/Makefile.mk
+#
+# sed -i 's/-DUSE_NGHTTP2/-DUSE_NGHTTP2 -DNGHTTP2_STATICLIB/g' lib/Makefile.mk
+# sed -i 's/-DUSE_NGHTTP2/-DUSE_NGHTTP2 -DNGHTTP2_STATICLIB/g' src/Makefile.mk
 
 sed -i 's/-lidn2/-lidn2 -lunistring -liconv/g' lib/Makefile.mk
 sed -i 's/-lidn2/-lidn2 -lunistring -liconv/g' src/Makefile.mk
@@ -64,23 +64,31 @@ sed -i 's/-lidn2/-lidn2 -lunistring -liconv/g' src/Makefile.mk
 # print all options
 cmake -LAH
 
-cmake -G "MinGW Makefiles" \
+cmake -B build -G "MinGW Makefiles" \
+    -DENABLE_IPV6=ON \
+    -DENABLE_UNICODE=ON \
     -DUSE_NGHTTP2=ON \
     -DENABLE_WEBSOCKETS=ON \
-    -DUSE_ECH=ON \
-    -DCURL_ZSTD=ON \
     -DCURL_BROTLI=ON \
+    -DCULR_ZLIB=ON \
+    -DCURL_ZSTD=ON \
     -DENABLE_IPV6=ON \
     -DCURL_ENABLE_SSL=ON \
     -DCURL_USE_OPENSSL=ON \
+    -DUSE_ECH=ON \
+    -DBUILD_STATIC_CURL=ON \
+    -DBUILD_STATIC_LIBS=ON \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_C_FLAGS=-Wno-unused-variable \
 
 
 mingw32-make clean
 mingw32-make -j CFLAGS="-Wno-unused-variable" CFG=-ssl-zlib-nghttp2-idn2-brotli-zstd-ipv6
 
 mkdir -p ../dist
-mv lib/libcurl* ../dist/
-mv src/*.exe ../dist/
+ls build
+mv build/lib/libcurl* ../dist/
+mv build/*.exe ../dist/
 
 cd ..
-dist/curl -V
+dist/curl.exe -V
