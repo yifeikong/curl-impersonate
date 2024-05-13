@@ -61,6 +61,9 @@ sed -i 's/-DUSE_NGHTTP2/-DUSE_NGHTTP2 -DNGHTTP2_STATICLIB/g' src/Makefile.mk
 sed -i 's/-lidn2/-lidn2 -lunistring -liconv/g' lib/Makefile.mk
 sed -i 's/-lidn2/-lidn2 -lunistring -liconv/g' src/Makefile.mk
 
+# print all options
+cmake -LAH
+
 cmake -G "MinGW Makefiles" \
     -DUSE_NGHTTP2=ON \
     -DENABLE_WEBSOCKETS=ON \
@@ -69,6 +72,7 @@ cmake -G "MinGW Makefiles" \
     -DCURL_BROTLI=ON \
     -DENABLE_IPV6=ON \
     -DCURL_ENABLE_SSL=ON \
+    -DCURL_USE_OPENSSL=ON \
 
 
 mingw32-make clean
