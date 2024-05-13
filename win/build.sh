@@ -75,6 +75,7 @@ cmake -B build -G "MinGW Makefiles" \
     -DENABLE_IPV6=ON \
     -DCURL_ENABLE_SSL=ON \
     -DCURL_USE_OPENSSL=ON \
+    -DHAVE_BORINGSSL=1 \
     -DUSE_ECH=ON \
     -DBUILD_STATIC_CURL=ON \
     -DBUILD_STATIC_LIBS=ON \
