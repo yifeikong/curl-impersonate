@@ -232,6 +232,20 @@ index c9facb699..eab61611e 100644
    X509_STORE *cert_store = nullptr;
    LHASH_OF(SSL_SESSION) *sessions = nullptr;
    // Most session-ids that will be cached, default is
+diff --git a/ssl/ssl_cert.cc b/ssl/ssl_cert.cc
+index aa46a8bb6..4e5bddd89 100644
+--- a/ssl/ssl_cert.cc
++++ b/ssl/ssl_cert.cc
+@@ -602,8 +602,7 @@ bool ssl_cert_check_key_usage(const CBS *in, enum ssl_key_usage_t bit) {
+     }
+ 
+     if (!CBS_asn1_bitstring_has_bit(&bit_string, bit)) {
+-      OPENSSL_PUT_ERROR(SSL, SSL_R_KEY_USAGE_BIT_INCORRECT);
+-      return false;
++      // curl-impersonate: bypass the key usage check
+     }
+ 
+     return true;
 diff --git a/ssl/ssl_cipher.cc b/ssl/ssl_cipher.cc
 index fd8cef95d..3d2c8ff6d 100644
 --- a/ssl/ssl_cipher.cc
