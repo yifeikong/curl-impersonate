@@ -146,7 +146,7 @@ index 54f92d931..ea5895e9b 100644
            exit 1
 diff --git a/export.sh b/export.sh
 new file mode 100755
-index 000000000..7bced6879
+index 000000000..db9ea5ea9
 --- /dev/null
 +++ b/export.sh
 @@ -0,0 +1,9 @@
@@ -157,7 +157,7 @@ index 000000000..7bced6879
 +# 1. https://github.com/curl/curl/pull/13244/files
 +# 2. https://everything.curl.dev/build/windows.html
 +
-+git df curl-8_7_1 > chrome.patch
++git diff curl-8_7_1 > chrome.patch
 +mv chrome.patch ../curl-impersonate/chrome/patches/curl-impersonate.patch
 diff --git a/include/curl/curl.h b/include/curl/curl.h
 index b2377b789..89271eafa 100644

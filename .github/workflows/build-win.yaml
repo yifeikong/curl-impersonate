@@ -61,6 +61,7 @@ jobs:
             mingw-w64-${{ matrix.env }}-nasm
             mingw-w64-${{ matrix.env }}-gcc
             mingw-w64-${{ matrix.env }}-go
+            mingw-w64-${{ matrix.env }}-libuv
 
       - name: Copy and patch
         shell: msys2 {0}
