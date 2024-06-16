@@ -82,7 +82,6 @@ cmake -B build -G "MinGW Makefiles" \
     -DBUILD_STATIC_CURL=ON \
     -DBUILD_STATIC_LIBS=ON \
     -DBUILD_CURL_EXE=ON \
-    -DCURL_STATIC_CRT=ON \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_C_FLAGS=-Wno-unused-variable \
 
