@@ -1,33 +1,39 @@
 diff --git a/export.sh b/export.sh
 new file mode 100755
-index 000000000..2e1f397aa
+index 000000000..678d1ca41
 --- /dev/null
 +++ b/export.sh
 @@ -0,0 +1,4 @@
 +#!/bin/bash
 +
-+git df d24a382 > boringssl.patch
++git diff d24a382 > boringssl.patch
 +mv boringssl.patch ../curl-impersonate/chrome/patches/boringssl.patch
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
-index e500dd76e..487945969 100644
+index e500dd76e..e75bca26b 100644
 --- a/include/openssl/ssl.h
 +++ b/include/openssl/ssl.h
-@@ -1560,6 +1560,9 @@ OPENSSL_EXPORT int SSL_CTX_set_strict_cipher_list(SSL_CTX *ctx,
+@@ -1560,6 +1560,12 @@ OPENSSL_EXPORT int SSL_CTX_set_strict_cipher_list(SSL_CTX *ctx,
  // garbage inputs, unless an empty cipher list results.
  OPENSSL_EXPORT int SSL_CTX_set_cipher_list(SSL_CTX *ctx, const char *str);
  
 +// curl-impersonate: set the extension order by given string
 +OPENSSL_EXPORT int SSL_CTX_set_extension_order(SSL_CTX *ctx, char *order);
 +
++// curl-impersonate
++OPENSSL_EXPORT int SSL_CTX_set_key_usage_check_enabled(SSL_CTX *ctx, int enabled);
++
  // SSL_set_strict_cipher_list configures the cipher list for |ssl|, evaluating
  // |str| as a cipher string and returning error if |str| contains anything
  // meaningless. It returns one on success and zero on failure.
-@@ -4583,6 +4586,9 @@ OPENSSL_EXPORT void SSL_CTX_set_grease_enabled(SSL_CTX *ctx, int enabled);
+@@ -4583,6 +4589,12 @@ OPENSSL_EXPORT void SSL_CTX_set_grease_enabled(SSL_CTX *ctx, int enabled);
  // permute extensions. For now, this is only implemented for the ClientHello.
  OPENSSL_EXPORT void SSL_CTX_set_permute_extensions(SSL_CTX *ctx, int enabled);
  
 +// curl-impersonate
 +OPENSSL_EXPORT int SSL_CTX_set_extension_order(SSL_CTX *ctx, char *order);
++
++// curl-impersonate
++OPENSSL_EXPORT int SSL_CTX_set_key_usage_check_enabled(SSL_CTX *ctx, int enabled);
 +
  // SSL_set_permute_extensions configures whether sockets on |ssl| should
  // permute extensions. For now, this is only implemented for the ClientHello.
@@ -126,7 +132,7 @@ index b13400097..8b457b873 100644
      if (!kExtensions[i].add_clienthello(hs, &extensions, &extensions, type)) {
        OPENSSL_PUT_ERROR(SSL, SSL_R_ERROR_ADDING_EXTENSION);
 diff --git a/ssl/handshake_client.cc b/ssl/handshake_client.cc
-index 971ebd0b1..0005c6d79 100644
+index 971ebd0b1..effe5c920 100644
 --- a/ssl/handshake_client.cc
 +++ b/ssl/handshake_client.cc
 @@ -215,14 +215,6 @@ static void ssl_get_client_disabled(const SSL_HANDSHAKE *hs,
@@ -182,8 +188,18 @@ index 971ebd0b1..0005c6d79 100644
        !ssl_encrypt_client_hello(hs, MakeConstSpan(ech_enc, ech_enc_len)) ||
        !ssl_add_client_hello(hs)) {
      return ssl_hs_error;
+@@ -1402,7 +1374,8 @@ static enum ssl_hs_wait_t do_send_client_key_exchange(SSL_HANDSHAKE *hs) {
+     ssl_key_usage_t intended_use = (alg_k & SSL_kRSA)
+                                        ? key_usage_encipherment
+                                        : key_usage_digital_signature;
+-    if (!ssl_cert_check_key_usage(&leaf_cbs, intended_use)) {
++    if (hs->config->key_usage_check_enabled &&
++        !ssl_cert_check_key_usage(&leaf_cbs, intended_use)) {
+       if (hs->config->enforce_rsa_key_usage ||
+           EVP_PKEY_id(hs->peer_pubkey.get()) != EVP_PKEY_RSA) {
+         return ssl_hs_error;
 diff --git a/ssl/internal.h b/ssl/internal.h
-index c9facb699..eab61611e 100644
+index c9facb699..a32e9b4ba 100644
 --- a/ssl/internal.h
 +++ b/ssl/internal.h
 @@ -574,9 +574,14 @@ BSSL_NAMESPACE_BEGIN
@@ -202,50 +218,45 @@ index c9facb699..eab61611e 100644
  
  // Bits for |algorithm_prf| (handshake digest).
  #define SSL_HANDSHAKE_MAC_DEFAULT 0x1
-@@ -2161,6 +2166,9 @@ bssl::UniquePtr<SSL_SESSION> tls13_create_session_with_ticket(SSL *ssl,
+@@ -2161,6 +2166,12 @@ bssl::UniquePtr<SSL_SESSION> tls13_create_session_with_ticket(SSL *ssl,
  // for |hs|, if applicable. It returns true on success and false on error.
  bool ssl_setup_extension_permutation(SSL_HANDSHAKE *hs);
  
 +// curl-impersonate
 +bool ssl_set_extension_order(SSL_HANDSHAKE *hs);
 +
++// curl-impersonate
++bool ssl_set_key_usage_check_enabled(SSL_HANDSHAKE *hs);
++
  // ssl_setup_key_shares computes client key shares and saves them in |hs|. It
  // returns true on success and false on failure. If |override_group_id| is zero,
  // it offers the default groups, including GREASE. If it is non-zero, it offers
-@@ -3033,6 +3041,9 @@ struct SSL_CONFIG {
+@@ -3033,6 +3044,12 @@ struct SSL_CONFIG {
    // crypto
    UniquePtr<SSLCipherPreferenceList> cipher_list;
  
 +  // curl-impersonate
 +  char *extension_order = nullptr;
 +
++  // curl-impersonate
++  int key_usage_check_enabled = 1;
++
    // This is used to hold the local certificate used (i.e. the server
    // certificate for a server or the client certificate for a client).
    UniquePtr<CERT> cert;
-@@ -3490,6 +3501,9 @@ struct ssl_ctx_st {
+@@ -3490,6 +3507,12 @@ struct ssl_ctx_st {
  
    bssl::UniquePtr<bssl::SSLCipherPreferenceList> cipher_list;
  
 +  // curl-impersonate
 +  char *extension_order = nullptr;
 +
++  // curl-impersonate
++  int key_usage_check_enabled = 1;
++
    X509_STORE *cert_store = nullptr;
    LHASH_OF(SSL_SESSION) *sessions = nullptr;
    // Most session-ids that will be cached, default is
-diff --git a/ssl/ssl_cert.cc b/ssl/ssl_cert.cc
-index aa46a8bb6..4e5bddd89 100644
---- a/ssl/ssl_cert.cc
-+++ b/ssl/ssl_cert.cc
-@@ -602,8 +602,7 @@ bool ssl_cert_check_key_usage(const CBS *in, enum ssl_key_usage_t bit) {
-     }
- 
-     if (!CBS_asn1_bitstring_has_bit(&bit_string, bit)) {
--      OPENSSL_PUT_ERROR(SSL, SSL_R_KEY_USAGE_BIT_INCORRECT);
--      return false;
-+      // curl-impersonate: bypass the key usage check
-     }
- 
-     return true;
 diff --git a/ssl/ssl_cipher.cc b/ssl/ssl_cipher.cc
 index fd8cef95d..3d2c8ff6d 100644
 --- a/ssl/ssl_cipher.cc
@@ -477,24 +488,30 @@ index fd8cef95d..3d2c8ff6d 100644
                  "Not all ciphers are included in the cipher order");
  
 diff --git a/ssl/ssl_lib.cc b/ssl/ssl_lib.cc
-index 58b68e675..15eb823b3 100644
+index 58b68e675..455ee4dd0 100644
 --- a/ssl/ssl_lib.cc
 +++ b/ssl/ssl_lib.cc
-@@ -657,6 +657,7 @@ SSL *SSL_new(SSL_CTX *ctx) {
+@@ -657,6 +657,8 @@ SSL *SSL_new(SSL_CTX *ctx) {
    ssl->config->retain_only_sha256_of_client_certs =
        ctx->retain_only_sha256_of_client_certs;
    ssl->config->permute_extensions = ctx->permute_extensions;
-+  ssl->config->extension_order = ctx->extension_order;
++  ssl->config->extension_order = ctx->extension_order;  // curl-impersonate
++  ssl->config->key_usage_check_enabled = ctx->key_usage_check_enabled;  // curl-impersonate
    ssl->config->aes_hw_override = ctx->aes_hw_override;
    ssl->config->aes_hw_override_value = ctx->aes_hw_override_value;
    ssl->config->tls13_cipher_policy = ctx->tls13_cipher_policy;
-@@ -3015,6 +3016,12 @@ void SSL_CTX_set_permute_extensions(SSL_CTX *ctx, int enabled) {
+@@ -3015,6 +3017,17 @@ void SSL_CTX_set_permute_extensions(SSL_CTX *ctx, int enabled) {
    ctx->permute_extensions = !!enabled;
  }
  
 +// curl-impersonate: set extensions order
 +int SSL_CTX_set_extension_order(SSL_CTX *ctx, char *order) {
 +  ctx->extension_order = order;
++  return 0;
++}
++
++int SSL_CTX_set_key_usage_check_enabled(SSL_CTX *ctx, int enabled) {
++  ctx->key_usage_check_enabled = enabled;
 +  return 0;
 +}
 +
