@@ -34,6 +34,8 @@ export NGHTTP2_PATH=nghttp2_stub
 export LIBIDN2_PATH=idn2_stub
 export SSL=1
 export SSL_PATH=$PWD/boringssl
+export OPENSSL_PATH=$PWD/boringssl
+export OPENSSL_LIBPATH=$PWD/boringssl/lib
 export OPENSSL_LIBS='-lssl -lcrypto'
 
 
@@ -51,17 +53,17 @@ cd curl
 patchfile=../../chrome/patches/curl-impersonate.patch
 patch -p1 < $patchfile
 
-sed -i 's/-shared/-s -static -shared/g' lib/Makefile.mk
-sed -i 's/-static/-s -static/g' src/Makefile.mk
+# sed -i 's/-shared/-s -static -shared/g' lib/Makefile.mk
+# sed -i 's/-static/-s -static/g' src/Makefile.mk
 #
 # sed -i 's/-DUSE_NGHTTP2/-DUSE_NGHTTP2 -DNGHTTP2_STATICLIB/g' lib/Makefile.mk
 # sed -i 's/-DUSE_NGHTTP2/-DUSE_NGHTTP2 -DNGHTTP2_STATICLIB/g' src/Makefile.mk
 
-# sed -i 's/-lidn2/-lidn2 -lunistring -liconv/g' lib/Makefile.mk
-# sed -i 's/-lidn2/-lidn2 -lunistring -liconv/g' src/Makefile.mk
+sed -i 's/-lidn2/-lidn2 -lunistring -liconv/g' lib/Makefile.mk
+sed -i 's/-lidn2/-lidn2 -lunistring -liconv/g' src/Makefile.mk
 
 # print all options
-# cmake -LAH
+cmake -LAH
 
 cmake -B build -G "MinGW Makefiles" \
     -DSSL_PATH=$PWD/boringssl \
@@ -71,17 +73,16 @@ cmake -B build -G "MinGW Makefiles" \
     -DUSE_NGHTTP2=ON \
     -DENABLE_WEBSOCKETS=ON \
     -DCURL_BROTLI=ON \
-    -DCULR_ZLIB=ON \
+    -DCURL_ZLIB=ON \
     -DCURL_ZSTD=ON \
     -DENABLE_IPV6=ON \
-    -DENABLE_SSL=ON \
-    -DUSE_OPENSSL=ON \
+    -DCURL_ENABLE_SSL=ON \
+    -DCURL_USE_OPENSSL=ON \
     -DHAVE_BORINGSSL=1 \
     -DUSE_ECH=ON \
     -DHAVE_ECH=ON \
     -DBUILD_STATIC_CURL=ON \
     -DBUILD_STATIC_LIBS=ON \
-    -DBUILD_CURL_EXE=ON \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_C_FLAGS=-Wno-unused-variable \
 
