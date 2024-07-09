@@ -54,6 +54,7 @@ jobs:
           - arch: i386
             host: i386-linux-musl
             capture_interface: eth0
+            # https://github.com/ziglang/zig/issues/7935
             zigflags: -target x86-linux-musl -fPIC -z notext
           - arch: arm
             host: arm-linux-gnueabihf
@@ -142,6 +143,7 @@ jobs:
 
       - name: Build the Chrome version of curl-impersonate
         run: |
+          export LDFLAGS=-fuse-ld=lld
           make chrome-build
           make chrome-checkbuild
           make chrome-install
