@@ -145,6 +145,7 @@ jobs:
       - name: Build the Chrome version of curl-impersonate
         run: |
           # export LDFLAGS=-fuse-ld=lld
+          zig env
           make chrome-build
           make chrome-checkbuild
           make chrome-install
