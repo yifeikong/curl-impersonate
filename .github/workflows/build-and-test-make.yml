@@ -27,7 +27,7 @@ jobs:
       CXX: ${{ github.workspace }}/zigshim/cxx
       AR: ${{ github.workspace }}/zigshim/ar
       ZIG_FLAGS: ${{ matrix.zigflags }}
-      LD: ${{ github.workspace }}/zigshim/ld
+      # LD: ${{ github.workspace }}/zigshim/ld
     strategy:
       fail-fast: false
       matrix:
