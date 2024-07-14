@@ -107,6 +107,7 @@ jobs:
           export LD=$TOOLCHAIN/bin/ld
           export RANLIB=$TOOLCHAIN/bin/llvm-ranlib
           export STRIP=$TOOLCHAIN/bin/llvm-strip
+          export LIBS="-lssl -lcrypto -lc++"
           ./configure --prefix=${{ runner.temp }}/install \
                       --with-android=yes \
                       --host=${{ matrix.host }} \
@@ -192,6 +193,7 @@ jobs:
           export LD=$TOOLCHAIN/bin/ld
           export RANLIB=$TOOLCHAIN/bin/llvm-ranlib
           export STRIP=$TOOLCHAIN/bin/llvm-strip
+          export LIBS="-lssl -lcrypto -lc++"
           ./configure --prefix=${{ runner.temp }}/install --enable-static \
                       --with-android=yes \
                       --host=${{ matrix.host }} \

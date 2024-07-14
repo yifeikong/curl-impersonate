@@ -299,6 +299,7 @@ jobs:
       - name: Run configure script
         run: |
           mkdir ${{ runner.temp }}/install
+          autoreconf -i
           ./configure LDFLAGS="-L$(brew --prefix zstd)/lib" CPPFLAGS="-I$(brew --prefix zstd)/include" --prefix=${{ runner.temp }}/install
 
       # Cache the build of BoringSSL, which is the longest part of the build
