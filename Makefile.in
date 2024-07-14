@@ -47,6 +47,8 @@ with_zstd = @with_zstd@
 with_ca_bundle = @with_ca_bundle@
 # Path to be passed to curl's --with-ca-path configure option.
 with_ca_path = @with_ca_path@
+# Extra cmake flags for android
+EXTRA_CMAKE_FLAGS = @EXTRA_CMAKE_FLAGS@
 
 CC = @CC@
 CXX = @CXX@
