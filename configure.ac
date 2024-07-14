@@ -27,7 +27,7 @@ AC_ARG_WITH([android],
 AS_IF(
     # If building for android
     [test x"$build_for_android" = xyes],
-    [EXTRA_CMAKE_FLAGS="-DANDROID_ABI=${TARGET} -DANDROID_PLATFORM=android-${API} -DCMAKE_TOOLCHAIN_FILE=${NDK}/build/cmake/android.toolchain.cmake"],
+    [EXTRA_CMAKE_FLAGS="-DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-${API} -DCMAKE_TOOLCHAIN_FILE=${NDK}/build/cmake/android.toolchain.cmake"],
     [EXTRA_CMAKE_FLAGS=""]
 )
 
