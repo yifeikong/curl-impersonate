@@ -191,6 +191,7 @@ $(boringssl_static_libs): boringssl.zip boringssl/.patched
 			-DCMAKE_C_COMPILER=$(CC) \
 			-DCMAKE_SYSTEM_NAME=$$system_name \
 			-DCMAKE_SYSTEM_PROCESSOR=$(host_cpu) \
+			$(EXTRA_CMAKE_FLAGS) \
 			-GNinja \
 			..
 	@ninja@ -j$(SUBJOBS)

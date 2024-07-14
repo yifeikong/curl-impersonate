@@ -108,6 +108,7 @@ jobs:
           export RANLIB=$TOOLCHAIN/bin/llvm-ranlib
           export STRIP=$TOOLCHAIN/bin/llvm-strip
           ./configure --prefix=${{ runner.temp }}/install \
+                      --with-android=yes \
                       --host=${{ matrix.host }} \
                       --with-zlib=${{ runner.temp }}/zlib \
                       --with-zstd=${{ runner.temp }}/zstd \
@@ -192,6 +193,7 @@ jobs:
           export RANLIB=$TOOLCHAIN/bin/llvm-ranlib
           export STRIP=$TOOLCHAIN/bin/llvm-strip
           ./configure --prefix=${{ runner.temp }}/install --enable-static \
+                      --with-android=yes \
                       --host=${{ matrix.host }} \
                       --with-zlib=${{ runner.temp }}/zlib \
                       --with-zstd=${{ runner.temp }}/zstd \
