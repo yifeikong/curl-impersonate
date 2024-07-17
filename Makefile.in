@@ -47,6 +47,8 @@ with_zstd = @with_zstd@
 with_ca_bundle = @with_ca_bundle@
 # Path to be passed to curl's --with-ca-path configure option.
 with_ca_path = @with_ca_path@
+# Extra cmake flags for android
+EXTRA_CMAKE_FLAGS = @EXTRA_CMAKE_FLAGS@
 
 CC = @CC@
 CXX = @CXX@
@@ -191,6 +193,7 @@ $(boringssl_static_libs): boringssl.zip boringssl/.patched
 			-DCMAKE_C_COMPILER=$(CC) \
 			-DCMAKE_SYSTEM_NAME=$$system_name \
 			-DCMAKE_SYSTEM_PROCESSOR=$(host_cpu) \
+			$(EXTRA_CMAKE_FLAGS) \
 			-GNinja \
 			..
 	@ninja@ -j$(SUBJOBS)
@@ -278,7 +281,7 @@ $(CURL_VERSION)/.chrome: $(chrome_libs)	$(CURL_VERSION).tar.gz $(CURL_VERSION)/.
 	  if test -n "$(with_ca_path)"; then \
 		config_flags="$$config_flags --with-ca-path=$(with_ca_path)"; \
 	  fi; \
-	  add_libs="-pthread"; \
+	  add_libs="-pthread -lssl -lcrypto -lc++"; \
 	}
 
 	echo "Configuring curl with: $$config_flags"

@@ -1,4 +1,4 @@
-AC_INIT([curl-impersonate], [0.7.0], [lwt@lwthiker.com, kong@yifei.me])
+AC_INIT([curl-impersonate], [0.7.1], [kong@yifei.me])
 
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
@@ -8,11 +8,30 @@ AC_PROG_CXX
 
 AC_CHECK_TOOL([STRIP], [strip])
 
+AC_ARG_VAR([API], [Android API version])
+AC_ARG_VAR([NDK], [Android NDK path])
+AC_ARG_VAR([TARGET], [Android build target])
+
 AC_ARG_ENABLE([static],
     [AS_HELP_STRING([--enable-static],
         [Build curl-impersonate statically with libcurl-impersonate])],
     [AC_SUBST([static_build], ["$enableval"])],
     [AC_SUBST([static_build], ["no"])])
+
+# Check for Android environment
+AC_ARG_WITH([android],
+    [AS_HELP_STRING([--with-android], [Build for Android])],
+    [build_for_android=$withval],
+    [build_for_android=no])
+
+AS_IF(
+    # If building for android
+    [test x"$build_for_android" = xyes],
+    [EXTRA_CMAKE_FLAGS="-DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-${API} -DCMAKE_TOOLCHAIN_FILE=${NDK}/build/cmake/android.toolchain.cmake"],
+    [EXTRA_CMAKE_FLAGS=""]
+)
+
+AC_SUBST(EXTRA_CMAKE_FLAGS)
 
 # Let the user optionally specify the path to zlib.
 # This is useful when cross compiling.
@@ -74,18 +93,6 @@ AC_ARG_WITH([ca-path],
          Relevant only for the chrome build.])],
     [AC_SUBST([with_ca_path], ["$withval"])],
     [AC_SUBST([with_ca_path], [""])])
-
-# Path to a directory containing libnssckbi.so, the file that contains the root
-# certificates needed for nss.
-# Useful when cross compiling. When building natively, curl's patched configure
-# script will attempt to locate it on the local system instead.
-AC_ARG_WITH([libnssckbi],
-    [AS_HELP_STRING([--with-libnssckbi=DIRECTORY],
-        [Path to a directory containing libnssckbi.so. \
-         Useful when cross compiling. \
-         Relevant only for the Firefox build.])],
-    [AC_SUBST([with_libnssckbi], ["$withval"])],
-    [AC_SUBST([with_libnssckbi], [""])])
 
 # BoringSSL requires cmake 3.5+, which is sometimes available under
 # "cmake3" instead of "cmake"
